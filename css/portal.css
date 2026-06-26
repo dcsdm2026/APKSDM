@@ -1,14 +1,40 @@
+:root {
+    --primary-color: #0d47a1;
+    --secondary-color: #f57c00;
+    --bg-gradient: linear-gradient(135deg, #0d47a1 0%, #002171 100%);
+}
+
 body {
-    font-family: 'Poppins', sans-serif;
-    background-color: #f8fafc;
+    background: var(--bg-gradient);
+    height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
 }
-.sidebar {
-    transition: all 0.3s ease;
+
+.login-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 400px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: transform 0.3s ease;
 }
-.card-stat {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.card-stat:hover {
+
+.login-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #002171;
+}
+
+.font-sm {
+    font-size: 0.875rem;
+    font-weight: 500;
 }
