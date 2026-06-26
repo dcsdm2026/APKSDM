@@ -49,16 +49,15 @@
             }
         });
 
-        // Kalkulasi Otomatis TMT Pensiun (Tanggal Lahir + Batas Usia Pensiun -> Tanggal 1 Bulan Berikutnya)
+        // Kalkulasi Otomatis TMT Pensiun
         const hitungPensiun = () => {
             if (DOM.tanggalLahir.value && DOM.bup.value) {
                 const tglLahir = new Date(DOM.tanggalLahir.value);
                 const bupTahun = parseInt(DOM.bup.value);
                 
                 let tahunPensiun = tglLahir.getFullYear() + bupTahun;
-                let bulanPensiun = tglLahir.getMonth() + 1; // getMonth() dimulai dari 0
+                let bulanPensiun = tglLahir.getMonth() + 1;
                 
-                // Bergeser ke bulan berikutnya
                 bulanPensiun += 1;
                 if (bulanPensiun > 12) {
                     bulanPensiun = 1;
@@ -72,14 +71,14 @@
         DOM.tanggalLahir.addEventListener('change', hitungPensiun);
         DOM.bup.addEventListener('change', hitungPensiun);
 
-        // Menghitung Masa Kerja (Tahun, Bulan, Hari) dari Tanggal Masuk RS
+        // Menghitung Masa Kerja
         DOM.masukRs.addEventListener('change', (e) => {
             if (e.target.value) {
                 const masuk = new Date(e.target.value);
                 const sekarang = new Date();
                 
                 let tahun = sekarang.getFullYear() - masuk.getFullYear();
-                let bulan = sekarang.getMonth() - masuk.getMonth();
+                let bulan = Bird = sekarang.getMonth() - masuk.getMonth();
                 let hari = sekarang.getDate() - masuk.getDate();
                 
                 if (hari < 0) {
@@ -105,9 +104,15 @@
         document.getElementById('btnTambah').addEventListener('click', () => {
             DOM.form.reset();
             document.getElementById('id_pegawai').value = "";
-            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-user-plus me-2 text-warning"></i> Tambah Pegawai Baru';
             DOM.boxAnak.style.display = 'none';
         });
+
+        // --- BINDING EVENT FITUR BARU: DOWNLOAD & IMPORT ---
+        document.getElementById('btnExportExcelSemua').addEventListener('click', (e) => { e.preventDefault(); downloadExcelSemua(); });
+        document.getElementById('btnExportPdfSemua').addEventListener('click', (e) => { e.preventDefault(); downloadPdfSemua(); });
+        document.getElementById('btnExportExcelBelum').addEventListener('click', (e) => { e.preventDefault(); downloadExcelBelumIsi(); });
+        document.getElementById('btnExportPdfBelum').addEventListener('click', (e) => { e.preventDefault(); downloadPdfBelumIsi(); });
+        document.getElementById('fileImportExcel').addEventListener('change', importExcelCSV);
     }
 
     // Pengambilan data utama dari DB Supabase
@@ -130,7 +135,290 @@
         document.getElementById('lblMutasi').textContent = arr.filter(p => p.status_pegawai === 'Mutasi').length;
     }
 
-    // File Upload Handler Utility
+    // Render Data & Pagination Framework
+    function renderTabel() {
+        const cari = DOM.txtCari.value.toLowerCase();
+        const stat = DOM.filterStatus.value;
+        const kel = DOM.filterKelompok.value;
+
+        const dataDisaring = listPegawai.filter(p => {
+            const matchKeyword = (p.nama && p.nama.toLowerCase().includes(cari)) ||
+                                 (p.nik && p.nik.includes(cari)) ||
+                                 (p.nip && p.nip.includes(cari));
+            const matchStatus = !stat || p.status_pegawai === stat;
+            const matchKelompok = !kel || p.kelompok_pegawai === kel;
+            return matchKeyword && matchStatus && matchKelompok;
+        });
+
+        const indexMulai = (pageSekarang - 1) * barisPerHalaman;
+        const indexSelesai = indexMulai + barisPerHalaman;
+        const pagedData = dataDisaring.slice(indexMulai, indexSelesai);
+
+        DOM.tbody.innerHTML = "";
+
+        if (pagedData.length === 0) {
+            DOM.tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-muted">Tidak ada data pegawai yang cocok ditemukan.</td></tr>`;
+            return;
+        }
+
+        pagedData.forEach(p => {
+            const badgeMap = { 'Aktif': 'bg-success', 'Mutasi': 'bg-warning', 'Pensiun': 'bg-danger', 'Resign': 'bg-secondary' };
+            const badgeClass = badgeMap[p.status_pegawai] || 'bg-dark';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <div class="d-flex align-items-center">
+                        <img src="${p.url_foto || 'https://via.placeholder.com/40'}" class="rounded-circle me-2 object-fit-cover shadow-sm" width="40" height="40">
+                        <div>
+                            <div class="fw-bold text-dark">${p.nama}</div>
+                            <small class="text-muted">NIK: ${p.nik}</small>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div>${p.nip || '<span class="text-muted">-</span>'}</div>
+                    <small class="text-muted">HP: ${p.no_hp || '-'}</small>
+                </td>
+                <td>
+                    <div><span class="badge bg-light text-dark border">${p.kelompok_pegawai}</span></div>
+                    <small class="text-secondary">Gol: ${p.golongan || '-'}</small>
+                </td>
+                <td>
+                    <div class="fw-semibold text-truncate" style="max-width:180px;">${p.jabatan || '-'}</div>
+                    <small class="text-primary"><i class="fa-solid fa-door-open me-1"></i>${p.ruangan || '-'}</small>
+                </td>
+                <td><small class="text-dark fw-medium">${p.masa_kerja || '-'}</small></td>
+                <td><span class="badge ${badgeClass}">${p.status_pegawai}</span></td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-primary btn-edit me-1" data-id="${p.id_pegawai}"><i class="fa-solid fa-pen-to-square"></i></button>
+                    <button class="btn btn-sm btn-outline-danger btn-hapus" data-id="${p.id_pegawai}"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            `;
+
+            tr.querySelector('.btn-edit').addEventListener('click', () => muatEditForm(p.id_pegawai));
+            tr.querySelector('.btn-hapus').addEventListener('click', () => hapusPegawaiData(p.id_pegawai));
+            DOM.tbody.appendChild(tr);
+        });
+
+        document.getElementById('lblInfoHalaman').textContent = `Menampilkan ${indexMulai + 1}-${Math.min(indexSelesai, dataDisaring.length)} dari ${dataDisaring.length} Pegawai`;
+        bangunNavigasiHalaman(dataDisaring.length);
+    }
+
+    function bangunNavigasiHalaman(totalData) {
+        const totalHalaman = Math.ceil(totalData / barisPerHalaman);
+        const barNav = document.getElementById('paginationBar');
+        barNav.innerHTML = "";
+
+        if(totalHalaman <= 1) return;
+
+        barNav.innerHTML += `<li class="page-item ${pageSekarang === 1 ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${pageSekarang - 1}">Back</a></li>`;
+        for (let i = 1; i <= totalHalaman; i++) {
+            barNav.innerHTML += `<li class="page-item ${pageSekarang === i ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+        }
+        barNav.innerHTML += `<li class="page-item ${pageSekarang === totalHalaman ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${pageSekarang + 1}">Next</a></li>`;
+
+        barNav.querySelectorAll('.page-link').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetPage = parseInt(e.target.getAttribute('data-page'));
+                if (targetPage > 0 && targetPage <= totalHalaman) {
+                    pageSekarang = targetPage;
+                    renderTabel();
+                }
+            });
+        });
+    }
+
+    // --- LOGIKA UTILITY: CEK FIELD PEGAWAI YANG BELUM LENGKAP ---
+    function analisisDataBelumIsi(p) {
+        let evaluasi = [];
+        if (!p.nip && p.kelompok_pegawai === 'ASN') evaluasi.push("NIP Kosong");
+        if (!p.tempat_lahir || !p.tanggal_lahir) evaluasi.push("TTL Belum Lengkap");
+        if (!p.no_kk) evaluasi.push("No KK Kosong");
+        if (!p.alamat) evaluasi.push("Alamat Kosong");
+        if (!p.bpjs_kesehatan) evaluasi.push("BPJS Kosong");
+        if (!p.npwp) evaluasi.push("NPWP Kosong");
+        
+        // Cek Upload Berkas
+        let berkasKosong = [];
+        if (!p.url_foto) berkasKosong.push("Foto");
+        if (!p.url_ktp) berkasKosong.push("KTP");
+        if (!p.url_kk) berkasKosong.push("KK");
+        if (!p.url_ijazah) berkasKosong.push("Ijazah");
+        
+        if (berkasKosong.length > 0) {
+            evaluasi.push(`Berkas Belum diunggah (${berkasKosong.join(', ')})`);
+        }
+        
+        return evaluasi.join(' | ');
+    }
+
+    function dapatkanListBelumIsi() {
+        let hasil = [];
+        listPegawai.forEach((p) => {
+            const keterangan = analisisDataBelumIsi(p);
+            if (keterangan !== "") {
+                hasil.push({
+                    nik: p.nik,
+                    nama: p.nama,
+                    ruangan: p.ruangan || '-',
+                    keterangan: keterangan
+                });
+            }
+        });
+        return hasil;
+    }
+
+    // --- LOGIKA ENGINE EXPORT DATA ---
+    
+    // 1. Download Excel Semua Data
+    function downloadExcelSemua() {
+        if(listPegawai.length === 0) return alert("Tidak ada data untuk didownload.");
+        const ws = XLSX.utils.json_to_sheet(listPegawai);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Semua_Pegawai");
+        XLSX.writeFile(wb, "Data_Semua_Pegawai_HRIS.xlsx");
+    }
+
+    // 2. Download PDF Semua Data
+    function downloadPdfSemua() {
+        if(listPegawai.length === 0) return alert("Tidak ada data untuk didownload.");
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l', 'mm', 'a4'); // Mode Landscape
+
+        doc.setFont("Helvetica", "bold");
+        doc.text("DAFTAR SELURUH PEGAWAI RSUD Drs. H. AMRI TAMBUNAN", 14, 15);
+        doc.setFontSize(10);
+        doc.setFont("Helvetica", "normal");
+        doc.text(`Dicetak pada: ${new Date().toLocaleDateString('id-ID')}`, 14, 21);
+
+        const headers = [["No", "NIK", "Nama Pegawai", "NIP", "Kelompok", "Gol", "Jabatan", "Ruangan", "Status"]];
+        const body = listPegawai.map((p, index) => [
+            index + 1, p.nik, p.nama, p.nip || '-', p.kelompok_pegawai || '-', p.golongan || '-', p.jabatan || '-', p.ruangan || '-', p.status_pegawai
+        ]);
+
+        doc.autoTable({
+            head: headers,
+            body: body,
+            startY: 25,
+            theme: 'grid',
+            headStyles: { fillColor: [13, 71, 161] }, // Navy Blue Hex #0d47a1
+            styles: { fontSize: 8 }
+        });
+
+        doc.save("Daftar_Semua_Pegawai_HRIS.pdf");
+    }
+
+    // 3. Download Excel Pegawai Belum Isi Data
+    function downloadExcelBelumIsi() {
+        const dataBelum = dapatkanListBelumIsi();
+        if(dataBelum.length === 0) return alert("Hebat! Semua data pegawai sudah terisi lengkap.");
+        
+        const mappedData = dataBelum.map((item, index) => ({
+            "No": index + 1,
+            "NIK": item.nik,
+            "Nama": item.nama,
+            "Ruangan": item.ruangan,
+            "Keterangan Belum Isi": item.keterangan
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(mappedData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Belum_Lengkap");
+        XLSX.writeFile(wb, "Pegawai_Belum_Isi_Data.xlsx");
+    }
+
+    // 4. Download PDF Pegawai Belum Isi Data
+    function downloadPdfBelumIsi() {
+        const dataBelum = dapatkanListBelumIsi();
+        if(dataBelum.length === 0) return alert("Hebat! Semua data pegawai sudah terisi lengkap.");
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4'); // Mode Portrait
+
+        doc.setFont("Helvetica", "bold");
+        doc.text("DAFTAR PEGAWAI BELUM LENGKAP ISI DATA", 14, 15);
+        doc.setFontSize(9);
+        doc.setFont("Helvetica", "normal");
+        doc.text("RSUD Drs. H. Amri Tambunan", 14, 20);
+
+        const headers = [["No", "NIK", "Nama Pegawai", "Ruangan", "Keterangan Belum Isi"]];
+        const body = dataBelum.map((item, index) => [
+            index + 1, item.nik, item.nama, item.ruangan, item.keterangan
+        ]);
+
+        doc.autoTable({
+            head: headers,
+            body: body,
+            startY: 25,
+            theme: 'striped',
+            headStyles: { fillColor: [245, 124, 0] }, // Orange Accent Hex #f57c00
+            columnStyles: {
+                4: { cellWidth: 70 } // Kolom keterangan dibuat lebar agar bungkus rapi
+            },
+            styles: { fontSize: 8, overflow: 'bleed' }
+        });
+
+        doc.save("Laporan_Pegawai_Belum_Isi_Data.pdf");
+    }
+
+    // --- LOGIKA ENGINE IMPORT EXCEL / CSV ---
+    function importExcelCSV(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async function (evt) {
+            try {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                // Ambil sheet pertama
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                
+                // Konversi baris ke array JSON JSON objek
+                const rowsJson = XLSX.utils.sheet_to_json(worksheet);
+                
+                if(rowsJson.length === 0) throw new Error("File Excel kosong atau format tidak sesuai.");
+
+                if(!confirm(`Terdeteksi ${rowsJson.length} baris data pegawai baru di dalam file. Lanjutkan import ke Supabase?`)) return;
+
+                // Mapping Header File Excel ke nama kolom tabel Supabase
+                const batchInserts = rowsJson.map(row => ({
+                    nik: String(row.nik || row.NIK || ''),
+                    nama: row.nama || row.Nama || 'Tanpa Nama',
+                    tempat_lahir: row.tempat_lahir || row.tempat_lahir || '',
+                    tanggal_lahir: row.tanggal_lahir || row.tanggal_lahir || null,
+                    nip: row.nip || row.NIP ? String(row.nip || row.NIP) : null,
+                    status_pegawai: row.status_pegawai || 'Aktif',
+                    kelompok_pegawai: row.kelompok_pegawai || 'BLUD',
+                    golongan: row.golongan || '',
+                    kelompok_jabatan: row.kelompok_jabatan || '',
+                    jabatan: row.jabatan || '',
+                    ruangan: row.ruangan || 'Umum',
+                    no_hp: row.no_hp ? String(row.no_hp) : '',
+                    email: row.email || ''
+                }));
+
+                // Kirim masal (bulk insert) ke tabel pegawai Supabase
+                const { error } = await supabaseClient.from('pegawai').insert(batchInserts);
+                if (error) throw error;
+
+                alert(`Sukses! Berhasil mengimport ${batchInserts.length} data pegawai ke sistem.`);
+                e.target.value = ""; // Reset form file input
+                await muatDataDariSupabase();
+
+            } catch (err) {
+                alert("Gagal memproses file import: " + err.message);
+                console.error(err);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // File Upload Handler Utility untuk Form Input Manual
     async function uploadBerkasKeBucket(inputElement, folderName, nik) {
         if (!inputElement.files || inputElement.files.length === 0) return null;
         const file = inputElement.files[0];
@@ -146,13 +434,12 @@
         return publicUrlData.publicUrl;
     }
 
-    // Simpan & Update Mesin CRUD
+    // Simpan & Update Mesin CRUD Manual
     async function simpanPegawai(e) {
         e.preventDefault();
         const id = document.getElementById('id_pegawai').value;
         const nikPegawai = document.getElementById('nik').value.trim();
 
-        // Object payload penampung data input
         const payload = {
             nik: nikPegawai,
             nama: document.getElementById('nama').value.trim(),
@@ -193,7 +480,6 @@
             role: document.getElementById('role_user').value
         };
 
-        // Proses Unggah Berkas jika ada file baru yang dipilih
         const fileMapping = [
             { id: 'f_foto', folder: 'foto', key: 'url_foto' },
             { id: 'f_ktp', folder: 'ktp', key: 'url_ktp' },
@@ -215,18 +501,15 @@
 
         try {
             if (id) {
-                // Proses Aksi Update Data Pegawai
                 const { error } = await supabaseClient.from('pegawai').update(payload).eq('id_pegawai', id);
                 if (error) throw error;
                 alert('Data pegawai berhasil diperbarui.');
             } else {
-                // Proses Aksi Tambah Baru Data Pegawai
                 const { error } = await supabaseClient.from('pegawai').insert([payload]);
                 if (error) throw error;
                 alert('Pegawai baru berhasil ditambahkan.');
             }
 
-            // Tutup Modal Bootstrap secara programmatif
             bootstrap.Modal.getInstance(document.getElementById('modalPegawai')).hide();
             await muatDataDariSupabase();
         } catch (err) {
@@ -234,113 +517,6 @@
         }
     }
 
-    // Render Data & Pagination Framework
-    function renderTabel() {
-        const cari = DOM.txtCari.value.toLowerCase();
-        const stat = DOM.filterStatus.value;
-        const kel = DOM.filterKelompok.value;
-
-        // Proses seleksi filter array data
-        const dataDisaring = listPegawai.filter(p => {
-            const matchKeyword = (p.nama && p.nama.toLowerCase().includes(cari)) ||
-                                 (p.nik && p.nik.includes(cari)) ||
-                                 (p.nip && p.nip.includes(cari));
-            const matchStatus = !stat || p.status_pegawai === stat;
-            const matchKelompok = !kel || p.kelompok_pegawai === kel;
-            return matchKeyword && matchStatus && matchKelompok;
-        });
-
-        // Hitung batasan index halaman
-        const indexMulai = (pageSekarang - 1) * barisPerHalaman;
-        const indexSelesai = indexMulai + barisPerHalaman;
-        const pagedData = dataDisaring.slice(indexMulai, indexSelesai);
-
-        DOM.tbody.innerHTML = "";
-
-        if (pagedData.length === 0) {
-            DOM.tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-muted">Tidak ada data pegawai yang cocok ditemukan.</td></tr>`;
-            return;
-        }
-
-        pagedData.forEach(p => {
-            const badgeMap = {
-                'Aktif': 'bg-success', 'Mutasi': 'bg-warning', 'Pensiun': 'bg-danger', 'Resign': 'bg-secondary'
-            };
-            const badgeClass = badgeMap[p.status_pegawai] || 'bg-dark';
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>
-                    <div class="d-flex align-items-center">
-                        <img src="${p.url_foto || 'https://via.placeholder.com/40'}" class="rounded-circle me-2 object-fit-cover shadow-sm" width="40" height="40">
-                        <div>
-                            <div class="fw-bold text-dark">${p.nama}</div>
-                            <small class="text-muted">NIK: ${p.nik}</small>
-                        </div>
-                    </div>
-                </td>
-                <td>
-                    <div>${p.nip || '<span class="text-muted font-monospace">-</span>'}</div>
-                    <small class="text-muted">HP: ${p.no_hp || '-'}</small>
-                </td>
-                <td>
-                    <div><span class="badge bg-light text-dark border">${p.kelompok_pegawai}</span></div>
-                    <small class="text-secondary">Gol: ${p.golongan || '-'}</small>
-                </td>
-                <td>
-                    <div class="fw-semibold text-truncate" style="max-width:180px;">${p.jabatan || '-'}</div>
-                    <small class="text-primary"><i class="fa-solid fa-door-open me-1"></i>${p.ruangan || '-'}</small>
-                </td>
-                <td><small class="text-dark font-xs fw-medium">${p.masa_kerja || '-'}</small></td>
-                <td><span class="badge ${badgeClass}">${p.status_pegawai}</span></td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary btn-edit me-1" data-id="${p.id_pegawai}"><i class="fa-solid fa-pen-to-square"></i></button>
-                    <button class="btn btn-sm btn-outline-danger btn-hapus" data-id="${p.id_pegawai}"><i class="fa-solid fa-trash"></i></button>
-                </td>
-            `;
-
-            // Pasang Aksi Event Handler Inline Tombol Aksi
-            tr.querySelector('.btn-edit').addEventListener('click', () => muatEditForm(p.id_pegawai));
-            tr.querySelector('.btn-hapus').addEventListener('click', () => hapusPegawaiData(p.id_pegawai));
-            DOM.tbody.appendChild(tr);
-        });
-
-        document.getElementById('lblInfoHalaman').textContent = `Menampilkan ${indexMulai + 1}-${Math.min(indexSelesai, dataDisaring.length)} dari ${dataDisaring.length} Pegawai`;
-        bangunNavigasiHalaman(dataDisaring.length);
-    }
-
-    // Generator Komponen Pagination Dinamis
-    function bangunNavigasiHalaman(totalData) {
-        const totalHalaman = Math.ceil(totalData / barisPerHalaman);
-        const barNav = document.getElementById('paginationBar');
-        barNav.innerHTML = "";
-
-        if(totalHalaman <= 1) return;
-
-        // Tombol Back
-        barNav.innerHTML += `<li class="page-item ${pageSekarang === 1 ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${pageSekarang - 1}">Back</a></li>`;
-        
-        // Nomor Halaman Terurut
-        for (let i = 1; i <= totalHalaman; i++) {
-            barNav.innerHTML += `<li class="page-item ${pageSekarang === i ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
-        }
-
-        // Tombol Next
-        barNav.innerHTML += `<li class="page-item ${pageSekarang === totalHalaman ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${pageSekarang + 1}">Next</a></li>`;
-
-        barNav.querySelectorAll('.page-link').forEach(el => {
-            el.addEventListener('click', (e) => {
-                e.preventDefault();
-                const targetPage = parseInt(e.target.getAttribute('data-page'));
-                if (targetPage > 0 && targetPage <= totalHalaman) {
-                    pageSekarang = targetPage;
-                    renderTabel();
-                }
-            });
-        });
-    }
-
-    // Mengambil dan memetakan data terpilih ke form pengeditan modal
     function muatEditForm(id) {
         const p = listPegawai.find(peg => peg.id_pegawai === id);
         if(!p) return;
@@ -368,7 +544,7 @@
         document.getElementById('pasangan').value = p.pasangan;
         
         DOM.jmlAnak.value = p.jml_anak;
-        DOM.jmlAnak.dispatchEvent(new Event('change')); // Memicu update kolom anak
+        DOM.jmlAnak.dispatchEvent(new Event('change'));
 
         document.getElementById('anak1').value = p.anak1 || "";
         document.getElementById('anak2').value = p.anak2 || "";
@@ -391,7 +567,6 @@
         new bootstrap.Modal(document.getElementById('modalPegawai')).show();
     }
 
-    // Fungsi Hapus Data Pegawai
     async function hapusPegawaiData(id) {
         if(confirm('Apakah Anda yakin ingin menghapus data pegawai ini secara permanen dari sistem?')) {
             try {
@@ -405,6 +580,5 @@
         }
     }
 
-    // Jalankan inisialisasi aplikasi
     init();
 })();
