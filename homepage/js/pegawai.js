@@ -2,7 +2,7 @@
  * HRIS RSUD Drs. H. AMRI TAMBUNAN - Module Pegawai
  * Filename: pegawai.js
  * Description: Mengatur manajemen data pegawai (CRUD), kalkulasi reaktif, pencarian, dan fitur ekspor data.
- * Versi: 2.0 (Super Aman & Kebal Crash dari Element Null)
+ * Versi: 2.1 (Pembersihan Typo & Kebal Crash dari Element Null)
  */
 
 // 1. Store Data Global
@@ -25,7 +25,7 @@ const DOM = {
     get tmtCpns() { return document.getElementById('tmt_cpns') || document.getElementById('tmtCpns'); },
     get tmtPensiun() { return document.getElementById('tmt_pensiun') || document.getElementById('tmtPensiun'); },
     get masukRs() { return document.getElementById('tanggal_masuk_rs') || document.getElementById('tanggalMasukRs'); },
-    get masaKerja() { return document.getElementById('masa_kerja') || document.getElementById('masaKerja'); },
+    get masaKerja() { return document.getElementById('masa_kerja') || document.getElementById('masa Kerja'); },
     get jmlAnak() { return document.getElementById('jml_anak') || document.getElementById('jmlAnak'); },
     get boxAnak() { return document.getElementById('box_anak') || document.getElementById('boxAnak'); },
     get statusPegawai() { return document.getElementById('status_pegawai') || document.getElementById('statusPegawai'); },
@@ -104,7 +104,7 @@ function menempelEventRules() {
     if (DOM.tanggalLahir) DOM.tanggalLahir.addEventListener('change', hitungPensiun);
     if (DOM.bup) DOM.bup.addEventListener('change', hitungPensiun);
 
-    // D. Kalkulasi Masa Kerja Berdasarkan Tanggal Masuk RSUD
+    // D. Kalkulasi Masa Kerja Berdasarkan Tanggal Masuk RSUD (Sudah Diperbaiki)
     if (DOM.masukRs) {
         DOM.masukRs.addEventListener('change', (e) => {
             if (e.target.value && DOM.masaKerja) {
@@ -112,7 +112,7 @@ function menempelEventRules() {
                 const sekarang = new Date();
                 
                 let tahun = sekarang.getFullYear() - masuk.getFullYear();
-                let bulan = geopolitical = sekarang.getMonth() - masuk.getMonth();
+                let bulan = sekarang.getMonth() - masuk.getMonth();
                 let hari = sekarang.getDate() - masuk.getDate();
                 
                 if (hari < 0) {
@@ -376,7 +376,6 @@ function downloadExcelSemua() {
 
 // 11. FITUR EKSPOR EXCEL (Pegawai Belum Lengkap Isi Datanya / "Belum Isi")
 function downloadExcelBelumIsi() {
-    // Filter pegawai yang field utamanya masih kosong/null
     const dataBelumLengkap = dataPegawai.filter(p => !p.nip || !p.tanggal_lahir || !p.tanggal_masuk_rs || !p.status_pegawai);
     
     if (dataBelumLengkap.length === 0) return alert("Semua data pegawai sudah diisi dengan lengkap.");
