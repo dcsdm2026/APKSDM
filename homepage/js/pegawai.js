@@ -113,7 +113,7 @@
     // Pengambilan data utama dari DB Supabase
     async function muatDataDariSupabase() {
         try {
-            const { data, error } = await supabase.from('pegawai').select('*').order('id_pegawai', { ascending: false });
+            const { data, error } = await supabaseClient.from('pegawai').select('*').order('id_pegawai', { ascending: false });
             if (error) throw error;
             listPegawai = data || [];
             hitungStatistikKolektif(listPegawai);
@@ -137,12 +137,12 @@
         const ext = file.name.split('.').pop();
         const filePath = `${folderName}/${nik}_${Date.now()}.${ext}`;
 
-        const { data, error } = await supabase.storage.from('hris-documents').upload(filePath, file);
+        const { data, error } = await supabaseClient.storage.from('hris-documents').upload(filePath, file);
         if (error) {
             console.error('Gagal mengunggah berkas:', error.message);
             return null;
         }
-        const { data: publicUrlData } = supabase.storage.from('hris-documents').getPublicUrl(filePath);
+        const { data: publicUrlData } = supabaseClient.storage.from('hris-documents').getPublicUrl(filePath);
         return publicUrlData.publicUrl;
     }
 
@@ -216,12 +216,12 @@
         try {
             if (id) {
                 // Proses Aksi Update Data Pegawai
-                const { error } = await supabase.from('pegawai').update(payload).eq('id_pegawai', id);
+                const { error } = await supabaseClient.from('pegawai').update(payload).eq('id_pegawai', id);
                 if (error) throw error;
                 alert('Data pegawai berhasil diperbarui.');
             } else {
                 // Proses Aksi Tambah Baru Data Pegawai
-                const { error } = await supabase.from('pegawai').insert([payload]);
+                const { error } = await supabaseClient.from('pegawai').insert([payload]);
                 if (error) throw error;
                 alert('Pegawai baru berhasil ditambahkan.');
             }
@@ -395,7 +395,7 @@
     async function hapusPegawaiData(id) {
         if(confirm('Apakah Anda yakin ingin menghapus data pegawai ini secara permanen dari sistem?')) {
             try {
-                const { error } = await supabase.from('pegawai').delete().eq('id_pegawai', id);
+                const { error } = await supabaseClient.from('pegawai').delete().eq('id_pegawai', id);
                 if(error) throw error;
                 alert('Data pegawai telah berhasil dihapus.');
                 await muatDataDariSupabase();
