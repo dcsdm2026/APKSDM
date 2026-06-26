@@ -101,15 +101,16 @@ async function hapusMasterData(id) {
     if (!id || id === "undefined") return;
 
     if (confirm("Apakah anda bersedia menghapus opsi pilihan ini?")) {
-        // Menghapus baris secara adaptif berdasarkan id_pengaturan atau id
+        // PERBAIKAN: Jangan gunakan .or(), langsung gunakan .eq() ke kolom 'id'
         const { error } = await supabase
             .from("pengaturan")
             .delete()
-            .or(`id_pengaturan.eq.${id},id.eq.${id}`);
+            .eq("id", id); // <--- Mengincar kolom 'id' yang pasti ada di database
 
         if (error) {
             alert("Gagal menghapus entitas master data: " + error.message);
         } else {
+            // Muat ulang data setelah sukses menghapus
             ambilDataMaster();
         }
     }
