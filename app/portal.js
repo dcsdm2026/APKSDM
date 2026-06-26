@@ -20,7 +20,7 @@ async function prosesLogin(e) {
 
         // Simpan sesi user ke localStorage
         localStorage.setItem("user_session", JSON.stringify(data));
-        window.location.href = "/index.html";
+        window.location.href = "index.html";
     } catch (err) {
         alertError.innerText = err.message;
         alertError.classList.remove("hidden");
