@@ -28,13 +28,13 @@
 
     <div class="card shadow-sm border-0 p-3 mb-4 bg-white">
         <div class="row g-2 align-items-center">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
                     <input type="text" id="txtCari" class="form-control border-start-0" placeholder="Cari NIK, Nama, atau NIP...">
                 </div>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-md-2">
                 <select id="filterStatus" class="form-select">
                     <option value="">-- Semua Status --</option>
                     <option value="Aktif">Aktif</option>
@@ -43,7 +43,7 @@
                     <option value="Resign">Resign</option>
                 </select>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-md-2">
                 <select id="filterKelompok" class="form-select">
                     <option value="">-- Semua Kelompok --</option>
                     <option value="ASN">ASN</option>
@@ -51,14 +51,40 @@
                     <option value="APBD">APBD</option>
                 </select>
             </div>
-            <div class="col-md-2 text-end">
-                <button class="btn btn-primary w-100" id="btnTambah" data-bs-toggle="modal" data-bs-target="#modalPegawai">
+            
+            <div class="col-md-5 text-end d-flex gap-1 justify-content-end">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-download me-1"></i> Semua Data
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-menu-item dropdown-item" href="#" id="btnExportExcelSemua"><i class="fa-regular fa-file-excel text-success me-2"></i>Download Excel</a></li>
+                        <li><a class="dropdown-menu-item dropdown-item" href="#" id="btnExportPdfSemua"><i class="fa-regular fa-file-pdf text-danger me-2"></i>Download PDF</a></li>
+                    </ul>
+                </div>
+
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-warning dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-triangle-exclamation me-1"></i> Belum Isi Data
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-menu-item dropdown-item" href="#" id="btnExportExcelBelum"><i class="fa-regular fa-file-excel text-success me-2"></i>Download Excel</a></li>
+                        <li><a class="dropdown-menu-item dropdown-item" href="#" id="btnExportPdfBelum"><i class="fa-regular fa-file-pdf text-danger me-2"></i>Download PDF</a></li>
+                    </ul>
+                </div>
+
+                <button type="button" class="btn btn-outline-dark" onclick="document.getElementById('fileImportExcel').click()">
+                    <i class="fa-solid fa-file-import me-1"></i> Import
+                </button>
+                <input type="file" id="fileImportExcel" accept=".csv, .xlsx, .xls" style="display: none;">
+
+                <button class="btn btn-primary" id="btnTambah" data-bs-toggle="modal" data-bs-target="#modalPegawai">
                     <i class="fa-solid fa-plus me-1"></i> Tambah
                 </button>
             </div>
         </div>
     </div>
-
+    
     <div class="card shadow-sm border-0 bg-white">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" id="tablePegawai">
