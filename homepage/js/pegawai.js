@@ -1,410 +1,412 @@
-(function () {
-    let listPegawai = [];
-    let pageSekarang = 1;
-    const barisPerHalaman = 25;
+// Scope State Management Realtime
+let dataSemuaPegawai = [];
+let halamanSekarang = 1;
+const batasBaris = 25;
 
-    // Cache elemen-elemen DOM
-    const DOM = {
-        tbody: document.getElementById('tbodyPegawai'),
-        form: document.getElementById('formPegawai'),
-        txtCari: document.getElementById('txtCari'),
-        filterStatus: document.getElementById('filterStatus'),
-        filterKelompok: document.getElementById('filterKelompok'),
-        jmlAnak: document.getElementById('jml_anak'),
-        boxAnak: document.getElementById('box_anak'),
-        nip: document.getElementById('nip'),
-        tmtCpns: document.getElementById('tmt_cpns'),
-        tanggalLahir: document.getElementById('tanggal_lahir'),
-        bup: document.getElementById('bup'),
-        tmtPensiun: document.getElementById('tmt_pensiun'),
-        masukRs: document.getElementById('masuk_rs'),
-        masaKerja: document.getElementById('masa_kerja')
-    };
+function initPegawaiModule() {
+    ambilDropdownPengaturan();
+    ambilStatistikKepegawaian();
+    ambilDataPegawai();
+}
 
-    // Inisialisasi awal modul pegawai
-    async function init() {
-        menempelEventRules();
-        await muatDataDariSupabase();
+// Mengatur Visibility Tab Form Isian
+function gantiTabForm(tabId) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('border-b-2', 'border-blue-600', 'text-blue-600', 'bg-white'));
+    document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
+    
+    document.getElementById(`tab-${tabId}`).classList.add('border-b-2', 'border-blue-600', 'text-blue-600', 'bg-white');
+    document.getElementById(`area-${tabId}`).classList.remove('hidden');
+}
+
+function kontrolInputAnak(val) {
+    const v = parseInt(val);
+    document.getElementById("box-anak1").classList.toggle("hidden", v < 1);
+    document.getElementById("box-anak2").classList.toggle("hidden", v < 2);
+    document.getElementById("box-anak3").classList.toggle("hidden", v < 3);
+}
+
+// Perhitungan Rumus Kompleks Kepegawaian (Kriteria No. B.1)
+function hitungMasaKerjaOtomatis(tanggalMasukRS) {
+    if (!tanggalMasukRS) return "-";
+    const masuk = new Date(tanggalMasukRS);
+    const sekarang = new Date();
+    
+    let tahun = sekarang.getFullYear() - masuk.getFullYear();
+    let bulan = sekarang.getMonth() - masuk.getMonth();
+    let hari = sekarang.getDate() - masuk.getDate();
+
+    if (hari < 0) {
+        bulan--;
+        hari += new Date(sekarang.getFullYear(), sekarang.getMonth(), 0).getDate();
     }
+    if (bulan < 0) {
+        tahun--;
+        bulan += 12;
+    }
+    return `${tahun} Tahun ${bulan} Bulan ${hari} Hari`;
+}
 
-    // Mengatur event listener dan kalkulasi reaktif otomatis
-    function menempelEventRules() {
-        // Kontrol input dinamis jumlah anak
-        DOM.jmlAnak.addEventListener('change', (e) => {
-            const val = parseInt(e.target.value);
-            DOM.boxAnak.style.display = val > 0 ? 'block' : 'none';
-            for (let i = 1; i <= 3; i++) {
-                document.getElementById(`c_anak${i}`).style.display = i <= val ? 'block' : 'none';
-                if(i > val) document.getElementById(`anak${i}`).value = "";
-            }
-        });
+function hitungCpnsDariNip(nip) {
+    if (nip.length >= 14) {
+        const tahun = nip.substring(8, 12);
+        const bulan = nip.substring(12, 14);
+        document.getElementById("f-tmt_cpns").value = `${tahun}-${bulan}-01`;
+    }
+}
 
-        // Ekstraksi TMT CPNS otomatis berdasarkan NIP
-        DOM.nip.addEventListener('input', (e) => {
-            const nipVal = e.target.value.replace(/\s+/g, '');
-            if (nipVal.length >= 14) {
-                const tahun = nipVal.substring(8, 12);
-                const bulan = nipVal.substring(12, 14);
-                DOM.tmtCpns.value = `${tahun}-${bulan}-01`;
-            }
-        });
+function hitungPensiunOtomatis() {
+    const tglLahirVal = document.getElementById("f-tanggal_lahir").value;
+    const bupVal = parseInt(document.getElementById("f-bup").value);
+    
+    if (tglLahirVal) {
+        const lahir = new Date(tglLahirVal);
+        let tahunPensiun = lahir.getFullYear() + bupVal;
+        let bulanPensiun = lahir.getMonth() + 1; // Bulan berikutnya setelah kelahiran
 
-        // Kalkulasi Otomatis TMT Pensiun (Tanggal Lahir + Batas Usia Pensiun -> Tanggal 1 Bulan Berikutnya)
-        const hitungPensiun = () => {
-            if (DOM.tanggalLahir.value && DOM.bup.value) {
-                const tglLahir = new Date(DOM.tanggalLahir.value);
-                const bupTahun = parseInt(DOM.bup.value);
-                
-                let tahunPensiun = tglLahir.getFullYear() + bupTahun;
-                let bulanPensiun = tglLahir.getMonth() + 1; // getMonth() dimulai dari 0
-                
-                // Bergeser ke bulan berikutnya
-                bulanPensiun += 1;
-                if (bulanPensiun > 12) {
-                    bulanPensiun = 1;
-                    tahunPensiun += 1;
-                }
-                
-                const strBulan = bulanPensiun.toString().padStart(2, '0');
-                DOM.tmtPensiun.value = `${tahunPensiun}-${strBulan}-01`;
-            }
-        };
-        DOM.tanggalLahir.addEventListener('change', hitungPensiun);
-        DOM.bup.addEventListener('change', hitungPensiun);
-
-        // Menghitung Masa Kerja (Tahun, Bulan, Hari) dari Tanggal Masuk RS
-        DOM.masukRs.addEventListener('change', (e) => {
-            if (e.target.value) {
-                const masuk = new Date(e.target.value);
-                const sekarang = new Date();
-                
-                let tahun = sekarang.getFullYear() - masuk.getFullYear();
-                let bulan = sekarang.getMonth() - masuk.getMonth();
-                let hari = sekarang.getDate() - masuk.getDate();
-                
-                if (hari < 0) {
-                    bulan -= 1;
-                    hari += new Date(sekarang.getFullYear(), sekarang.getMonth(), 0).getDate();
-                }
-                if (bulan < 0) {
-                    tahun -= 1;
-                    bulan += 12;
-                }
-                DOM.masaKerja.value = `${tahun} Tahun ${bulan} Bulan ${hari} Hari`;
-            }
-        });
-
-        // Filter dan Pencarian Realtime
-        DOM.txtCari.addEventListener('input', renderTabel);
-        DOM.filterStatus.addEventListener('change', renderTabel);
-        DOM.filterKelompok.addEventListener('change', renderTabel);
-
-        // Operasi Submit Form Pegawai
-        DOM.form.addEventListener('submit', simpanPegawai);
+        if (bulanPensiun > 11) {
+            bulanPensiun = 0;
+            tahunPensiun++;
+        }
+        const tmtPensiun = new Date(tahunPensiun, bulanPensiun, 1);
         
-        document.getElementById('btnTambah').addEventListener('click', () => {
-            DOM.form.reset();
-            document.getElementById('id_pegawai').value = "";
-            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-user-plus me-2 text-warning"></i> Tambah Pegawai Baru';
-            DOM.boxAnak.style.display = 'none';
-        });
+        // Format ISO lokal YYYY-MM-DD
+        const yyyy = tmtPensiun.getFullYear();
+        const mm = String(tmtPensiun.getMonth() + 1).padStart(2, '0');
+        document.getElementById("f-tmt_pensiun").value = `${yyyy}-${mm}-01`;
+    }
+}
+
+// Load Dropdown Options dari Tabel Pengaturan
+async function ambilDropdownPengaturan() {
+    const { data } = await supabase.from("pengaturan").select("*");
+    const kategori = ['golongan', 'ruangan', 'jabatan', 'fakultas', 'jurusan'];
+    
+    kategori.forEach(kat => {
+        const el = document.getElementById(`f-${kat}`);
+        const filterEl = document.getElementById(`filter-ruangan`);
+        if(!el) return;
+        
+        const filtered = data.filter(d => d.master_data === kat);
+        el.innerHTML = filtered.map(d => `<option value="${d.keterangan}">${d.keterangan}</option>`).join('');
+        
+        if (kat === 'ruangan' && filterEl) {
+            filterEl.innerHTML = `<option value="">Semua Ruangan</option>` + filtered.map(d => `<option value="${d.keterangan}">${d.keterangan}</option>`).join('');
+        }
+    });
+}
+
+// Sinkronisasi Penghitung Atas (Total, Aktif, dll)
+async function ambilStatistikKepegawaian() {
+    const { data } = await supabase.from("pegawai").select("status_pegawai");
+    if(!data) return;
+    
+    document.getElementById("stat-total").innerText = data.length;
+    document.getElementById("stat-aktif").innerText = data.filter(p => p.status_pegawai === 'Aktif').length;
+    document.getElementById("stat-resign").innerText = data.filter(p => p.status_pegawai === 'Resign').length;
+    document.getElementById("stat-pensiun").innerText = data.filter(p => p.status_pegawai === 'Pensiun').length;
+    document.getElementById("stat-mutasi").innerText = data.filter(p => p.status_pegawai === 'Mutasi').length;
+}
+
+// Fetch Utama & Filter Data Pegawai
+async function ambilDataPegawai() {
+    const cari = document.getElementById("cari-pegawai").value;
+    const filRuangan = document.getElementById("filter-ruangan").value;
+    const tbody = document.getElementById("tabel-pegawai-body");
+
+    let query = supabase.from("pegawai").select("*");
+
+    if (cari) {
+        query = query.or(`nama.ilike.%${cari}%,nik.ilike.%${cari}%,nip.ilike.%${cari}%`);
+    }
+    if (filRuangan) {
+        query = query.eq("ruangan", filRuangan);
     }
 
-    // Pengambilan data utama dari DB Supabase
-    async function muatDataDariSupabase() {
-        try {
-            const { data, error } = await supabase.from('pegawai').select('*').order('id_pegawai', { ascending: false });
-            if (error) throw error;
-            listPegawai = data || [];
-            hitungStatistikKolektif(listPegawai);
-            renderTabel();
-        } catch (err) {
-            alert('Gagal mengambil data pegawai: ' + err.message);
-        }
-    }
+    const { data, error } = await query;
+    if (error) return;
 
-    function hitungStatistikKolektif(arr) {
-        document.getElementById('lblTotal').textContent = arr.length;
-        document.getElementById('lblAktif').textContent = arr.filter(p => p.status_pegawai === 'Aktif').length;
-        document.getElementById('lblKeluar').textContent = arr.filter(p => p.status_pegawai === 'Resign' || p.status_pegawai === 'Pensiun').length;
-        document.getElementById('lblMutasi').textContent = arr.filter(p => p.status_pegawai === 'Mutasi').length;
-    }
+    dataSemuaPegawai = data.map(p => ({
+        ...p,
+        masa_kerja: hitungMasaKerjaOtomatis(p.masuk_rs)
+    }));
 
-    // File Upload Handler Utility
-    async function uploadBerkasKeBucket(inputElement, folderName, nik) {
-        if (!inputElement.files || inputElement.files.length === 0) return null;
-        const file = inputElement.files[0];
-        const ext = file.name.split('.').pop();
-        const filePath = `${folderName}/${nik}_${Date.now()}.${ext}`;
+    renderTabelPaginated();
+}
 
-        const { data, error } = await supabaseClient.storage.from('hris-documents').upload(filePath, file);
-        if (error) {
-            console.error('Gagal mengunggah berkas:', error.message);
-            return null;
-        }
-        const { data: publicUrlData } = supabaseClient.storage.from('hris-documents').getPublicUrl(filePath);
-        return publicUrlData.publicUrl;
-    }
+function renderTabelPaginated() {
+    const tbody = document.getElementById("tabel-pegawai-body");
+    tbody.innerHTML = "";
 
-    // Simpan & Update Mesin CRUD
-    async function simpanPegawai(e) {
-        e.preventDefault();
-        const id = document.getElementById('id_pegawai').value;
-        const nikPegawai = document.getElementById('nik').value.trim();
+    const totalData = dataSemuaPegawai.length;
+    const totalHalaman = Math.ceil(totalData / batasBaris) || 1;
+    
+    const indeksAwal = (halamanSekarang - 1) * batasBaris;
+    const indeksAkhir = Math.min(indeksAwal + batasBaris, totalData);
+    const dataHalamanIni = dataSemuaPegawai.slice(indeksAwal, indeksAkhir);
 
-        // Object payload penampung data input
-        const payload = {
-            nik: nikPegawai,
-            nama: document.getElementById('nama').value.trim(),
-            tempat_lahir: document.getElementById('tempat_lahir').value,
-            tanggal_lahir: DOM.tanggalLahir.value || null,
-            nip: DOM.nip.value.trim() || null,
-            status_pegawai: document.getElementById('status_pegawai').value,
-            kelompok_pegawai: document.getElementById('kelompok_pegawai').value,
-            golongan: document.getElementById('golongan').value,
-            tmt_pangkat: document.getElementById('tmt_pangkat').value || null,
-            kelompok_jabatan: document.getElementById('kelompok_jabatan').value,
-            jabatan: document.getElementById('jabatan').value,
-            tmt_jabatan: document.getElementById('tmt_jabatan').value || null,
-            masuk_rs: DOM.masukRs.value || null,
-            masa_kerja: DOM.masaKerja.value,
-            tmt_cpns: DOM.tmtCpns.value || null,
-            bup: parseInt(DOM.bup.value),
-            tmt_pensiun: DOM.tmtPensiun.value || null,
-            status_keluarga: document.getElementById('status_keluarga').value,
-            no_kk: document.getElementById('no_kk').value,
-            pasangan: document.getElementById('pasangan').value,
-            jml_anak: parseInt(DOM.jmlAnak.value),
-            anak1: document.getElementById('anak1').value,
-            anak2: document.getElementById('anak2').value,
-            anak3: document.getElementById('anak3').value,
-            alamat: document.getElementById('alamat').value,
-            jenjang: document.getElementById('jenjang').value,
-            fakultas: document.getElementById('fakultas').value,
-            jurusan: document.getElementById('jurusan').value,
-            asal_pendidikan: document.getElementById('asal_pendidikan').value,
-            ruangan: document.getElementById('ruangan').value,
-            tmt_nota: document.getElementById('tmt_nota').value || null,
-            bpjs_kesehatan: document.getElementById('bpjs_kesehatan').value,
-            ketenagakerjaan_taspen: document.getElementById('ketenagakerjaan_taspen').value,
-            npwp: document.getElementById('npwp').value,
-            no_hp: document.getElementById('no_hp').value,
-            email: document.getElementById('email_pegawai').value,
-            role: document.getElementById('role_user').value
-        };
-
-        // Proses Unggah Berkas jika ada file baru yang dipilih
-        const fileMapping = [
-            { id: 'f_foto', folder: 'foto', key: 'url_foto' },
-            { id: 'f_ktp', folder: 'ktp', key: 'url_ktp' },
-            { id: 'f_kk', folder: 'kk', key: 'url_kk' },
-            { id: 'f_ijazah', folder: 'ijazah', key: 'url_ijazah' },
-            { id: 'f_transkrip', folder: 'transkrip', key: 'url_transkrip' },
-            { id: 'f_pangkat', folder: 'pangkat', key: 'url_pangkat' },
-            { id: 'f_jabatan', folder: 'jabatan', key: 'url_jabatan' },
-            { id: 'f_nota', folder: 'nota', key: 'url_nota' },
-            { id: 'f_bpjs', folder: 'bpjs', key: 'url_bpjs' },
-            { id: 'f_taspen', folder: 'taspen', key: 'url_ketenagakerjaan_taspen' },
-            { id: 'f_npwp', folder: 'npwp', key: 'url_npwp' }
-        ];
-
-        for (const f of fileMapping) {
-            const fileUrl = await uploadBerkasKeBucket(document.getElementById(f.id), f.folder, nikPegawai);
-            if (fileUrl) payload[f.key] = fileUrl;
-        }
-
-        try {
-            if (id) {
-                // Proses Aksi Update Data Pegawai
-                const { error } = await supabaseClient.from('pegawai').update(payload).eq('id_pegawai', id);
-                if (error) throw error;
-                alert('Data pegawai berhasil diperbarui.');
-            } else {
-                // Proses Aksi Tambah Baru Data Pegawai
-               const { error } = await supabaseClient.from('pegawai').insert([payload]);
-                if (error) throw error;
-                alert('Pegawai baru berhasil ditambahkan.');
-            }
-
-            // Tutup Modal Bootstrap secara programmatif
-            bootstrap.Modal.getInstance(document.getElementById('modalPegawai')).hide();
-            await muatDataDariSupabase();
-        } catch (err) {
-            alert('Gagal menyimpan data: ' + err.message);
-        }
-    }
-
-    // Render Data & Pagination Framework
-    function renderTabel() {
-        const cari = DOM.txtCari.value.toLowerCase();
-        const stat = DOM.filterStatus.value;
-        const kel = DOM.filterKelompok.value;
-
-        // Proses seleksi filter array data
-        const dataDisaring = listPegawai.filter(p => {
-            const matchKeyword = (p.nama && p.nama.toLowerCase().includes(cari)) ||
-                                 (p.nik && p.nik.includes(cari)) ||
-                                 (p.nip && p.nip.includes(cari));
-            const matchStatus = !stat || p.status_pegawai === stat;
-            const matchKelompok = !kel || p.kelompok_pegawai === kel;
-            return matchKeyword && matchStatus && matchKelompok;
-        });
-
-        // Hitung batasan index halaman
-        const indexMulai = (pageSekarang - 1) * barisPerHalaman;
-        const indexSelesai = indexMulai + barisPerHalaman;
-        const pagedData = dataDisaring.slice(indexMulai, indexSelesai);
-
-        DOM.tbody.innerHTML = "";
-
-        if (pagedData.length === 0) {
-            DOM.tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-muted">Tidak ada data pegawai yang cocok ditemukan.</td></tr>`;
-            return;
-        }
-
-        pagedData.forEach(p => {
-            const badgeMap = {
-                'Aktif': 'bg-success', 'Mutasi': 'bg-warning', 'Pensiun': 'bg-danger', 'Resign': 'bg-secondary'
-            };
-            const badgeClass = badgeMap[p.status_pegawai] || 'bg-dark';
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>
-                    <div class="d-flex align-items-center">
-                        <img src="${p.url_foto || 'https://via.placeholder.com/40'}" class="rounded-circle me-2 object-fit-cover shadow-sm" width="40" height="40">
-                        <div>
-                            <div class="fw-bold text-dark">${p.nama}</div>
-                            <small class="text-muted">NIK: ${p.nik}</small>
-                        </div>
+    dataHalamanIni.forEach((p, index) => {
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-50 border-b border-gray-100 transition">
+                <td class="p-4 text-gray-500">${indeksAwal + index + 1}</td>
+                <td class="p-4 font-mono text-xs font-semibold">${p.nik}</td>
+                <td class="p-4 font-medium text-slate-900">${p.nama}</td>
+                <td class="p-4"><div class="text-xs text-gray-500 font-mono">${p.nip || '-'}</div><div class="text-xs text-blue-600 font-medium">${p.ruangan || '-'}</div></td>
+                <td class="p-4">
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${p.status_pegawai === 'Aktif' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">${p.status_pegawai}</span>
+                    <span class="block text-xs text-gray-400 mt-1">${p.kelompok_pegawai || ''}</span>
+                </td>
+                <td class="p-4 text-xs font-medium text-slate-600">${p.masa_kerja}</td>
+                <td class="p-4 text-center">
+                    <div class="inline-flex space-x-1">
+                        <button onclick='bukaModalForm(${JSON.stringify(p)})' class="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="hapusPegawai(${p.id_pegawai})" class="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </td>
-                <td>
-                    <div>${p.nip || '<span class="text-muted font-monospace">-</span>'}</div>
-                    <small class="text-muted">HP: ${p.no_hp || '-'}</small>
-                </td>
-                <td>
-                    <div><span class="badge bg-light text-dark border">${p.kelompok_pegawai}</span></div>
-                    <small class="text-secondary">Gol: ${p.golongan || '-'}</small>
-                </td>
-                <td>
-                    <div class="fw-semibold text-truncate" style="max-width:180px;">${p.jabatan || '-'}</div>
-                    <small class="text-primary"><i class="fa-solid fa-door-open me-1"></i>${p.ruangan || '-'}</small>
-                </td>
-                <td><small class="text-dark font-xs fw-medium">${p.masa_kerja || '-'}</small></td>
-                <td><span class="badge ${badgeClass}">${p.status_pegawai}</span></td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary btn-edit me-1" data-id="${p.id_pegawai}"><i class="fa-solid fa-pen-to-square"></i></button>
-                    <button class="btn btn-sm btn-outline-danger btn-hapus" data-id="${p.id_pegawai}"><i class="fa-solid fa-trash"></i></button>
-                </td>
-            `;
+            </tr>
+        `;
+    });
 
-            // Pasang Aksi Event Handler Inline Tombol Aksi
-            tr.querySelector('.btn-edit').addEventListener('click', () => muatEditForm(p.id_pegawai));
-            tr.querySelector('.btn-hapus').addEventListener('click', () => hapusPegawaiData(p.id_pegawai));
-            DOM.tbody.appendChild(tr);
-        });
+    document.getElementById("pagination-info").innerText = `Menampilkan data ${totalData ? indeksAwal + 1 : 0} - ${indeksAkhir} dari ${totalData} data`;
+    document.getElementById("btn-prev").disabled = halamanSekarang === 1;
+    document.getElementById("btn-next").disabled = halamanSekarang === totalHalaman;
 
-        document.getElementById('lblInfoHalaman').textContent = `Menampilkan ${indexMulai + 1}-${Math.min(indexSelesai, dataDisaring.length)} dari ${dataDisaring.length} Pegawai`;
-        bangunNavigasiHalaman(dataDisaring.length);
+    // Build nomor navigasi halaman
+    let htmlHalaman = "";
+    for(let i=1; i<=totalHalaman; i++) {
+        htmlHalaman += `<button onclick="pindahHalaman(${i})" class="px-3 py-1 rounded-md text-xs font-medium ${halamanSekarang === i ? 'bg-blue-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}">${i}</button>`;
+    }
+    document.getElementById("halaman-list").innerHTML = htmlHalaman;
+}
+
+function pindahHalaman(hal) { halamanSekarang = hal; renderTabelPaginated(); }
+function halamanSebelumnya() { if(halamanSekarang > 1) { halamanSekarang--; renderTabelPaginated(); } }
+function halamanBerikutnya() { if(halamanSekarang * batasBaris < dataSemuaPegawai.length) { halamanSekarang++; renderTabelPaginated(); } }
+
+function bukaModalForm(data = null) {
+    document.getElementById("form-isi-pegawai").reset();
+    document.getElementById("f-id").value = "";
+    gantiTabForm('profil');
+    kontrolInputAnak(0);
+
+    if (data) {
+        document.getElementById("modal-title").innerText = "Ubah Berkas Rekap Pegawai";
+        document.getElementById("f-id").value = data.id_pegawai;
+        document.getElementById("f-nik").value = data.nik;
+        document.getElementById("f-nama").value = data.nama;
+        document.getElementById("f-tempat_lahir").value = data.tempat_lahir;
+        document.getElementById("f-tanggal_lahir").value = data.tanggal_lahir;
+        document.getElementById("f-no_hp").value = data.no_hp;
+        document.getElementById("f-email").value = data.email;
+        document.getElementById("f-alamat").value = data.alamat;
+        document.getElementById("f-status_keluarga").value = data.status_keluarga;
+        document.getElementById("f-no_kk").value = data.no_kk;
+        document.getElementById("f-pasangan").value = data.pasangan;
+        document.getElementById("f-jml_anak").value = data.jml_anak;
+        kontrolInputAnak(data.jml_anak);
+        document.getElementById("f-anak1").value = data.anak1;
+        document.getElementById("f-anak2").value = data.anak2;
+        document.getElementById("f-anak3").value = data.anak3;
+        document.getElementById("f-jenjang").value = data.jenjang;
+        document.getElementById("f-asal_pendidikan").value = data.asal_pendidikan;
+        document.getElementById("f-fakultas").value = data.fakultas;
+        document.getElementById("f-jurusan").value = data.jurusan;
+        document.getElementById("f-nip").value = data.nip;
+        document.getElementById("f-status_pegawai").value = data.status_pegawai;
+        document.getElementById("f-kelompok_pegawai").value = data.kelompok_pegawai;
+        document.getElementById("f-golongan").value = data.golongan;
+        document.getElementById("f-tmt_pangkat").value = data.tmt_pangkat;
+        document.getElementById("f-kelompok_jabatan").value = data.kelompok_jabatan;
+        document.getElementById("f-jabatan").value = data.jabatan;
+        document.getElementById("f-tmt_jabatan").value = data.tmt_jabatan;
+        document.getElementById("f-masuk_rs").value = data.masuk_rs;
+        document.getElementById("f-bup").value = data.bup || 58;
+        document.getElementById("f-tmt_cpns").value = data.tmt_cpns;
+        document.getElementById("f-tmt_pensiun").value = data.tmt_pensiun;
+        document.getElementById("f-ruangan").value = data.ruangan;
+        document.getElementById("f-tmt_nota").value = data.tmt_nota;
+        document.getElementById("f-role").value = data.role;
+        document.getElementById("f-bpjs_kesehatan").value = data.bpjs_kesehatan;
+        document.getElementById("f-ketenagakerjaan_taspen").value = data.ketenagakerjaan_taspen;
+        document.getElementById("f-npwp").value = data.npwp;
+    } else {
+        document.getElementById("modal-title").innerText = "Tambah Pegawai Baru";
+    }
+    document.getElementById("modal-pegawai").classList.remove("hidden");
+}
+
+function tutupModalForm() { document.getElementById("modal-pegawai").classList.add("hidden"); }
+
+// Fungsi Upload Berkas ke Supabase Cloud Storage Public Bucket
+async function uploadFileKeStorage(inputElementId, oldUrl) {
+    const fileInput = document.getElementById(inputElementId);
+    if (!fileInput || fileInput.files.length === 0) return oldUrl;
+
+    const file = fileInput.files[0];
+    const namaFileUnik = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+    
+    const { data, error } = await supabase.storage
+        .from('pegawai_dokumen')
+        .upload(namaFileUnik, file);
+
+    if (error) {
+        console.error("Gagal upload file:", error.message);
+        return oldUrl;
     }
 
-    // Generator Komponen Pagination Dinamis
-    function bangunNavigasiHalaman(totalData) {
-        const totalHalaman = Math.ceil(totalData / barisPerHalaman);
-        const barNav = document.getElementById('paginationBar');
-        barNav.innerHTML = "";
+    const { data: publicUrlData } = supabase.storage.from('pegawai_dokumen').getPublicUrl(namaFileUnik);
+    return publicUrlData.publicUrl;
+}
 
-        if(totalHalaman <= 1) return;
+// System Save / Update CRUD Operations
+async function simpanDataPegawai(e) {
+    e.preventDefault();
+    
+    // Upload semua berkas secara paralel
+    const url_foto = await uploadFileKeStorage('up-foto', document.getElementById("f-url_foto").value);
+    const url_ktp = await uploadFileKeStorage('up-ktp', document.getElementById("f-url_ktp").value);
+    const url_kk = await uploadFileKeStorage('up-kk', document.getElementById("f-url_kk").value);
+    const url_ijazah = await uploadFileKeStorage('up-ijazah', document.getElementById("f-url_ijazah").value);
+    const url_transkrip = await uploadFileKeStorage('up-transkrip', document.getElementById("f-url_transkrip").value);
+    const url_pangkat = await uploadFileKeStorage('up-pangkat', document.getElementById("f-url_pangkat").value);
+    const url_jabatan = await uploadFileKeStorage('up-jabatan', document.getElementById("f-url_jabatan").value);
+    const url_nota = await uploadFileKeStorage('up-nota', document.getElementById("f-url_nota").value);
+    const url_bpjs = await uploadFileKeStorage('up-bpjs', document.getElementById("f-url_bpjs").value);
+    const url_ketenagakerjaan_taspen = await uploadFileKeStorage('up-taspen', document.getElementById("f-url_ketenagakerjaan_taspen").value);
+    const url_npwp = await uploadFileKeStorage('up-npwp', document.getElementById("f-url_npwp").value);
 
-        // Tombol Back
-        barNav.innerHTML += `<li class="page-item ${pageSekarang === 1 ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${pageSekarang - 1}">Back</a></li>`;
-        
-        // Nomor Halaman Terurut
-        for (let i = 1; i <= totalHalaman; i++) {
-            barNav.innerHTML += `<li class="page-item ${pageSekarang === i ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+    const payload = {
+        nik: document.getElementById("f-nik").value,
+        nama: document.getElementById("f-nama").value,
+        tempat_lahir: document.getElementById("f-tempat_lahir").value,
+        tanggal_lahir: document.getElementById("f-tanggal_lahir").value || null,
+        no_hp: document.getElementById("f-no_hp").value,
+        email: document.getElementById("f-email").value,
+        alamat: document.getElementById("f-alamat").value,
+        status_keluarga: document.getElementById("f-status_keluarga").value,
+        no_kk: document.getElementById("f-no_kk").value,
+        pasangan: document.getElementById("f-pasangan").value,
+        jml_anak: parseInt(document.getElementById("f-jml_anak").value),
+        anak1: document.getElementById("f-anak1").value,
+        anak2: document.getElementById("f-anak2").value,
+        anak3: document.getElementById("f-anak3").value,
+        jenjang: document.getElementById("f-jenjang").value,
+        asal_pendidikan: document.getElementById("f-asal_pendidikan").value,
+        fakultas: document.getElementById("f-fakultas").value,
+        jurusan: document.getElementById("f-jurusan").value,
+        nip: document.getElementById("f-nip").value,
+        status_pegawai: document.getElementById("f-status_pegawai").value,
+        kelompok_pegawai: document.getElementById("f-kelompok_pegawai").value,
+        golongan: document.getElementById("f-golongan").value,
+        tmt_pangkat: document.getElementById("f-tmt_pangkat").value || null,
+        kelompok_jabatan: document.getElementById("f-kelompok_jabatan").value,
+        jabatan: document.getElementById("f-jabatan").value,
+        tmt_jabatan: document.getElementById("f-tmt_jabatan").value || null,
+        masuk_rs: document.getElementById("f-masuk_rs").value || null,
+        bup: parseInt(document.getElementById("f-bup").value),
+        tmt_cpns: document.getElementById("f-tmt_cpns").value || null,
+        tmt_pensiun: document.getElementById("f-tmt_pensiun").value || null,
+        ruangan: document.getElementById("f-ruangan").value,
+        tmt_nota: document.getElementById("f-tmt_nota").value || null,
+        role: document.getElementById("f-role").value,
+        bpjs_kesehatan: document.getElementById("f-bpjs_kesehatan").value,
+        ketenagakerjaan_taspen: document.getElementById("f-ketenagakerjaan_taspen").value,
+        npwp: document.getElementById("f-npwp").value,
+        masa_kerja: hitungMasaKerjaOtomatis(document.getElementById("f-masuk_rs").value),
+        url_foto, url_ktp, url_kk, url_ijazah, url_transkrip, url_pangkat, url_jabatan, url_nota, url_bpjs, url_ketenagakerjaan_taspen, url_npwp
+    };
+
+    const id = document.getElementById("f-id").value;
+    let hasil;
+
+    if (id) {
+        hasil = await supabase.from("pegawai").update(payload).eq("id_pegawai", id);
+    } else {
+        hasil = await supabase.from("pegawai").insert([payload]).select();
+        // Buat pula role_akses default untuk password standar login awal nik
+        if(hasil.data) {
+            await supabase.from("role_akses").insert([{
+                id_pegawai: hasil.data[0].id_pegawai,
+                nik: payload.nik,
+                nama: payload.nama,
+                role: payload.role,
+                email: payload.email || `${payload.nik}@rsud.com`,
+                password: payload.nik
+            }]);
         }
-
-        // Tombol Next
-        barNav.innerHTML += `<li class="page-item ${pageSekarang === totalHalaman ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${pageSekarang + 1}">Next</a></li>`;
-
-        barNav.querySelectorAll('.page-link').forEach(el => {
-            el.addEventListener('click', (e) => {
-                e.preventDefault();
-                const targetPage = parseInt(e.target.getAttribute('data-page'));
-                if (targetPage > 0 && targetPage <= totalHalaman) {
-                    pageSekarang = targetPage;
-                    renderTabel();
-                }
-            });
-        });
     }
 
-    // Mengambil dan memetakan data terpilih ke form pengeditan modal
-    function muatEditForm(id) {
-        const p = listPegawai.find(peg => peg.id_pegawai === id);
-        if(!p) return;
+    if (hasil.error) {
+        alert("Gagal memproses data: " + hasil.error.message);
+    } else {
+        tutupModalForm();
+        initPegawaiModule();
+    }
+}
 
-        document.getElementById('id_pegawai').value = p.id_pegawai;
-        document.getElementById('nik').value = p.nik;
-        document.getElementById('nama').value = p.nama;
-        document.getElementById('tempat_lahir').value = p.tempat_lahir;
-        DOM.tanggalLahir.value = p.tanggal_lahir;
-        DOM.nip.value = p.nip;
-        document.getElementById('status_pegawai').value = p.status_pegawai;
-        document.getElementById('kelompok_pegawai').value = p.kelompok_pegawai;
-        document.getElementById('golongan').value = p.golongan;
-        document.getElementById('tmt_pangkat').value = p.tmt_pangkat;
-        document.getElementById('kelompok_jabatan').value = p.kelompok_jabatan;
-        document.getElementById('jabatan').value = p.jabatan;
-        document.getElementById('tmt_jabatan').value = p.tmt_jabatan;
-        DOM.masukRs.value = p.masuk_rs;
-        DOM.masaKerja.value = p.masa_kerja;
-        DOM.tmtCpns.value = p.tmt_cpns;
-        DOM.bup.value = p.bup;
-        DOM.tmtPensiun.value = p.tmt_pensiun;
-        document.getElementById('status_keluarga').value = p.status_keluarga;
-        document.getElementById('no_kk').value = p.no_kk;
-        document.getElementById('pasangan').value = p.pasangan;
+async function hapusPegawai(id) {
+    if (confirm("Apakah Anda yakin ingin menghapus data pegawai permanen dari sistem?")) {
+        await supabase.from("pegawai").delete().eq("id_pegawai", id);
+        initPegawaiModule();
+    }
+}
+
+// ==========================================
+// EXPORT DATA SYSTEM (EXCEL & PDF GENERATOR)
+// ==========================================
+function dapatkanDataFilter(tipe) {
+    if (tipe === 'semua') return dataSemuaPegawai;
+    
+    // Filter khusus kriteria data kosong/belum diisi (Kriteria No B.1)
+    return dataSemuaPegawai.filter(p => !p.no_kk || !p.bpjs_kesehatan || !p.npwp || !p.url_foto);
+}
+
+function eksporData(tipe, format) {
+    const dataFiltrasi = dapatkanDataFilter(tipe);
+    
+    if (format === 'excel') {
+        const susunanSheet = dataFiltrasi.map((p, index) => ({
+            "No": index + 1, "NIK": p.nik, "Nama Pegawai": p.nama, "NIP": p.nip, "Ruangan": p.ruangan, "Status": p.status_pegawai, "Keterangan Validasi": (tipe==='semua'?'Lengkap':'Ada Berkas Kosong')
+        }));
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(susunanSheet);
+        XLSX.utils.book_append_sheet(wb, ws, "Rekap Pegawai");
+        XLSX.writeFile(wb, `Laporan_Kepegawaian_${tipe}_${Date.now()}.xlsx`);
+    } else {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l', 'mm', 'a4');
+        doc.text(`REKAPITULASI DATA KEPEGAWAIAN RSUD (${tipe.toUpperCase()})`, 14, 15);
         
-        DOM.jmlAnak.value = p.jml_anak;
-        DOM.jmlAnak.dispatchEvent(new Event('change')); // Memicu update kolom anak
-
-        document.getElementById('anak1').value = p.anak1 || "";
-        document.getElementById('anak2').value = p.anak2 || "";
-        document.getElementById('anak3').value = p.anak3 || "";
-        document.getElementById('alamat').value = p.alamat;
-        document.getElementById('jenjang').value = p.jenjang;
-        document.getElementById('fakultas').value = p.fakultas;
-        document.getElementById('jurusan').value = p.jurusan;
-        document.getElementById('asal_pendidikan').value = p.asal_pendidikan;
-        document.getElementById('ruangan').value = p.ruangan;
-        document.getElementById('tmt_nota').value = p.tmt_nota;
-        document.getElementById('bpjs_kesehatan').value = p.bpjs_kesehatan;
-        document.getElementById('ketenagakerjaan_taspen').value = p.ketenagakerjaan_taspen;
-        document.getElementById('npwp').value = p.npwp;
-        document.getElementById('no_hp').value = p.no_hp;
-        document.getElementById('email_pegawai').value = p.email;
-        document.getElementById('role_user').value = p.role;
-
-        document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-user-pen me-2 text-warning"></i> Perbarui Data Pegawai';
-        new bootstrap.Modal(document.getElementById('modalPegawai')).show();
+        const rows = dataFiltrasi.map((p, index) => [index + 1, p.nik, p.nama, p.nip || '-', p.ruangan || '-', p.status_pegawai]);
+        doc.autoTable({
+            head: [['No', 'NIK', 'Nama Lengkap', 'NIP', 'Ruangan', 'Status']],
+            body: rows,
+            startY: 22
+        });
+        doc.save(`Dokumen_Laporan_${tipe}.pdf`);
     }
+}
 
-    // Fungsi Hapus Data Pegawai
-    async function hapusPegawaiData(id) {
-        if(confirm('Apakah Anda yakin ingin menghapus data pegawai ini secara permanen dari sistem?')) {
-            try {
-                const { error } = await supabaseClient.from('pegawai').delete().eq('id_pegawai', id);
-                if(error) throw error;
-                alert('Data pegawai telah berhasil dihapus.');
-                await muatDataDariSupabase();
-            } catch(err) {
-                alert('Gagal menghapus data: ' + err.message);
-            }
-        }
-    }
+// CSV / EXCEL PARSER EXTRACTOR IMPORT FILE SYSTEM
+function prosesImportFile(input) {
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const dataBytes = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(dataBytes, {type: 'array'});
+        const namaSheet = workbook.SheetNames[0];
+        const barisData = XLSX.utils.sheet_to_json(workbook.Sheets[namaSheet]);
 
-    // Jalankan inisialisasi aplikasi
-    init();
-})();
+        // Mapping Bulk Data Row
+        const arrayUpload = barisData.map(row => ({
+            nik: String(row.NIK || row.nik),
+            nama: row.Nama || row.nama,
+            status_pegawai: row.Status || 'Aktif',
+            ruangan: row.Ruangan || row.ruangan
+        }));
+
+        const { error } = await supabase.from("pegawai").insert(arrayUpload);
+        if(error) alert("Gagal mengimpor file: " + error.message);
+        else { alert("Sukses mengimpor data!"); initPegawaiModule(); }
+    };
+    reader.readAsArrayBuffer(file);
+}
