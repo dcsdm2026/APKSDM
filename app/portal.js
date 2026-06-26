@@ -1,42 +1,28 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const loginForm = document.getElementById('loginForm');
-    const togglePassword = document.getElementById('togglePassword');
-    const passwordInput = document.getElementById('password');
+async function prosesLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const alertError = document.getElementById("alert-error");
 
-    // Toggle Sembunyikan/Tampilkan Password
-    togglePassword.addEventListener('click', () => {
-        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-        passwordInput.setAttribute('type', type);
-        togglePassword.querySelector('i').classList.toggle('fa-eye');
-        togglePassword.querySelector('i').classList.toggle('fa-eye-slash');
-    });
+    alertError.classList.add("hidden");
 
-    // Proses Handler Login
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value;
+    try {
+        const { data, error } = await supabase
+            .from("role_akses")
+            .select("*")
+            .eq("email", email)
+            .eq("password", password)
+            .single();
 
-        try {
-            // MENGGUNAKAN VARIABEL BARU: supabaseClient
-            const { data, error } = await supabaseClient
-                .from('role_akses')
-                .select('*')
-                .eq('email', email)
-                .eq('password', password)
-                .single();
-
-            if (error || !data) {
-                alert('Email atau password salah, silakan periksa kembali berkas login Anda.');
-                return;
-            }
-
-            // Menyimpan sesi user di LocalStorage
-            localStorage.setItem('hris_session', JSON.stringify(data));
-            window.location.href = 'index.html';
-        } catch (err) {
-            console.error(err);
-            alert('Terjadi kendala saat menghubungkan ke sistem.');
+        if (error || !data) {
+            throw new Error("Email atau kata sandi salah!");
         }
-    });
-});
+
+        // Simpan sesi user ke localStorage
+        localStorage.setItem("user_session", JSON.stringify(data));
+        window.location.href = "/index.html";
+    } catch (err) {
+        alertError.innerText = err.message;
+        alertError.classList.remove("hidden");
+    }
+}
