@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("user-avatar").innerText = user.nama.charAt(0).toUpperCase();
     
     // Set default menu awal ke halaman pegawai
-    loadMenu('/homepage/html/pegawai.html');
+    loadMenu('homepage/html/pegawai.html');
     
     // Live clock updater
     setInterval(() => {
