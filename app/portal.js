@@ -18,12 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('password').value;
 
         try {
-            // Memeriksa kredensial dari tabel role_akses
-            const { data, error } = await supabase
+            // MENGGUNAKAN VARIABEL BARU: supabaseClient
+            const { data, error } = await supabaseClient
                 .from('role_akses')
                 .select('*')
                 .eq('email', email)
-                .eq('password', password) // Catatan: Disarankan hashing pada sistem produksi
+                .eq('password', password)
                 .single();
 
             if (error || !data) {
