@@ -1,42 +1,20 @@
-:root {
-    --dark-blue: #0A2540;
-    --bright-blue: #635BFF;
-    --light-gray: #F8F9FA;
-}
-
 body {
-    background-color: var(--light-gray);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    overflow-x: hidden;
+    font-family: 'Poppins', sans-serif;
+    background-color: #f8fafc;
 }
 
+/* Transisi Sidebar Smooth */
 #sidebar {
-    min-width: 250px;
-    max-width: 250px;
-    min-height: 100vh;
-    background: var(--dark-blue);
-    transition: all 0.3s;
-    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-#sidebar.active {
-    margin-left: -250px;
+.sidebar-hide {
+    transform: translateX(-100%);
 }
 
-.bg-dark-blue {
-    background-color: var(--dark-blue);
-}
-
-#content {
-    min-height: 100vh;
-}
-
-.nav-link:hover, .components li.active > a {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffb74d !important;
-}
-
-@media (max-width: 768px) {
-    #sidebar { margin-left: -250px; }
-    #sidebar.active { margin-left: 0; }
+@media (min-width: 1024px) {
+    .sidebar-hide {
+        margin-left: -16rem;
+        transform: translateX(0);
+    }
 }
