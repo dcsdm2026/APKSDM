@@ -39,6 +39,11 @@ async function loadMenu(url) {
         } else if (url.includes('pengaturan')) {
             initPengaturanModule();
         }
+        if (url.includes("skp.html") && window.skpModule) {
+        window.skpModule.init();
+        } else if (url.includes("sertifikat.html") && window.sertifikatModule) {
+        window.sertifikatModule.init();
+}
     } catch (err) {
         mainFrame.innerHTML = `<div class="p-4 bg-red-100 text-red-700 rounded-lg">Error: ${err.message}</div>`;
     }
