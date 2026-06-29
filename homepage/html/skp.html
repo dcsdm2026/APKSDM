@@ -1,151 +1,134 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SKP - HRIS RSUD Drs. H. AMRI TAMBUNAN</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-slate-100 text-slate-800 font-sans antialiased">
+<div class="space-y-4">
+    <!-- Header Modul -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h2 class="text-base font-bold text-gray-800 tracking-tight">Manajemen Data SKP Pegawai</h2>
+            <p class="text-xs text-gray-500">Kelola realisasi dan nilai Sasaran Kinerja Pegawai tahunan</p>
+        </div>
+        <button onclick="skpModule.bukaModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i> Tambah Rekam SKP
+        </button>
+    </div>
 
-    <div class="container mx-auto p-4 max-w-7xl">
-        <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex justify-between items-center">
+    <!-- Panel Filter & Cari -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-wrap gap-3 items-center">
+        <div class="flex-1 min-w-[250px]">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="cari-skp" oninput="skpModule.cariData()" placeholder="Cari Nama atau NIK..." class="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-blue-500 transition">
+            </div>
+        </div>
+        <div class="w-48">
+            <select id="filter-tahun" onchange="skpModule.cariData()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-blue-500 transition">
+                <option value="">Semua Tahun</option>
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+                <option value="2024">2024</option>
+                <option value="2023">2023</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Tabel Data -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 text-xs font-semibold uppercase tracking-wider">
+                        <th class="p-3">Pegawai</th>
+                        <th class="p-3">Tahun SKP</th>
+                        <th class="p-3">Kinerja Organisasi</th>
+                        <th class="p-3">Predikat Kerja</th>
+                        <th class="p-3 text-center">Dokumen</th>
+                        <th class="p-3 text-center w-24">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tabel-skp-body" class="divide-y divide-gray-100"></tbody>
+            </table>
+        </div>
+        <!-- Navigasi Halaman -->
+        <div class="p-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center text-xs font-medium text-gray-600">
+            <button id="btn-prev" onclick="skpModule.halamanSebelumnya()" class="px-3 py-1 bg-white border border-gray-200 rounded-md hover:bg-gray-100 disabled:opacity-50 transition">Back</button>
+            <div id="info-halaman">Halaman: 1</div>
+            <button id="btn-next" onclick="skpModule.halamanBerikutnya()" class="px-3 py-1 bg-white border border-gray-200 rounded-md hover:bg-gray-100 disabled:opacity-50 transition">Next</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Dialog Box -->
+<div id="modal-skp" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-md overflow-hidden transform transition-all">
+        <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+            <h3 id="modal-title" class="text-xs font-bold text-gray-800">Tambah Data SKP</h3>
+            <button onclick="skpModule.tutupModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form id="form-skp" onsubmit="skpModule.simpanData(event)" class="p-4 space-y-3">
+            <input type="hidden" id="form-id">
+            
+            <div class="relative">
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Cari Pegawai (Ketik Nama)</label>
+                <input type="text" id="autocomplete-input" oninput="skpModule.handleAutocomplete(this.value)" placeholder="Ketik nama untuk mencari..." class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500" autocomplete="off">
+                <div id="autocomplete-results" class="absolute z-10 w-full bg-white border border-gray-200 rounded shadow-lg max-h-40 overflow-y-auto hidden mt-1"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">NIK</label>
+                    <input type="text" id="form-nik" readonly class="w-full p-2 bg-gray-100 border border-gray-200 rounded text-xs text-gray-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Nama Lengkap</label>
+                    <input type="text" id="form-nama" readonly class="w-full p-2 bg-gray-100 border border-gray-200 rounded text-xs text-gray-500 outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Tahun Evaluasi</label>
+                    <select id="form-tahun" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
+                        <option value="">-- Pilih --</option>
+                        <option value="2026">2026</option>
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Kinerja Organisasi</label>
+                    <select id="form-capaian" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
+                        <option value="">-- Pilih --</option>
+                        <option value="Istimewa">Istimewa</option>
+                        <option value="Baik">Baik</option>
+                        <option value="Butuh Perbaikan">Butuh Perbaikan</option>
+                        <option value="Kurang">Kurang</option>
+                    </select>
+                </div>
+            </div>
+
             <div>
-                <h1 class="text-lg font-bold text-slate-900 tracking-tight">Manajemen Sasaran Kinerja Pegawai (SKP)</h1>
-                <p class="text-xs text-slate-500">RSUD Drs. H. AMRI TAMBUNAN</p>
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Predikat Kinerja Pegawai</label>
+                <select id="form-predikat" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
+                    <option value="">-- Pilih Predikat --</option>
+                    <option value="Sangat Baik">Sangat Baik</option>
+                    <option value="Baik">Baik</option>
+                    <option value="Cukup/Butuh Perbaikan">Cukup / Butuh Perbaikan</option>
+                    <option value="Kurang">Kurang</option>
+                    <option value="Sangat Kurang">Sangat Kurang</option>
+                </select>
             </div>
-            <button onclick="bukaModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded shadow transition flex items-center gap-2">
-                <i class="fa-solid fa-plus"></i> Tambah Data SKP
-            </button>
-        </div>
 
-        <div class="mb-4 bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-wrap gap-3 items-center">
-            <div class="flex-1 min-w-[250px]">
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                    </span>
-                    <input type="text" id="cari-skp" oninput="cariData()" placeholder="Cari Nama, NIP atau NIK..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500 transition">
-                </div>
+            <div>
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">File Dokumen SKP (.pdf)</label>
+                <input type="file" id="form-file" class="w-full p-1 border border-gray-200 rounded text-xs bg-slate-50">
+                <p id="file-helper" class="text-[9px] text-gray-400 mt-1 hidden">*Kosongkan jika tidak berniat mengubah file lama.</p>
             </div>
-            <div class="w-40">
-                <input type="number" id="filter-tahun" oninput="cariData()" placeholder="Tahun SKP" class="w-full p-2 bg-slate-50 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500 transition">
-            </div>
-        </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs font-semibold uppercase tracking-wider">
-                            <th class="p-3">Pegawai</th>
-                            <th class="p-3">Jabatan</th>
-                            <th class="p-3">Tahun</th>
-                            <th class="p-3">Kinerja Orgs / Predikat</th>
-                            <th class="p-3 text-center">Lampiran</th>
-                            <th class="p-3 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabel-skp-body" class="divide-y divide-slate-100"></tbody>
-                </table>
+            <div class="pt-3 border-t border-gray-100 flex justify-end gap-2">
+                <button type="button" onclick="skpModule.tutupModal()" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-md transition">Batal</button>
+                <button type="submit" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md shadow-sm transition">Simpan</button>
             </div>
-            <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs font-medium text-slate-600">
-                <button id="btn-prev" onclick="halamanSebelumnya()" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50 transition">Back</button>
-                <div id="info-halaman">Halaman: 1</div>
-                <button id="btn-next" onclick="halamanBerikutnya()" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50 transition">Next</button>
-            </div>
-        </div>
+        </form>
     </div>
-
-    <!-- Modal Form -->
-    <div id="modal-skp" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-2xl overflow-hidden transform transition-all max-h-[90vh] flex flex-col">
-            <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
-                <h3 id="modal-title" class="text-sm font-bold text-slate-800">Tambah Data SKP</h3>
-                <button onclick="tutupModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form id="form-skp" onsubmit="simpanData(event)" class="p-4 space-y-3 overflow-y-auto flex-1">
-                <input type="hidden" id="form-id">
-                
-                <div class="relative">
-                    <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Cari Pegawai</label>
-                    <input type="text" id="autocomplete-input" oninput="handleAutocomplete(this.value)" placeholder="Ketik nama untuk memuat NIK, NIP, Jabatan..." class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500" autocomplete="off">
-                    <div id="autocomplete-results" class="absolute z-10 w-full bg-white border border-slate-200 rounded shadow-lg max-h-40 overflow-y-auto hidden mt-1"></div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">NIK</label>
-                        <input type="text" id="form-nik" readonly class="w-full p-2 bg-slate-100 border border-slate-200 rounded text-xs text-slate-500">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Nama Lengkap</label>
-                        <input type="text" id="form-nama" readonly class="w-full p-2 bg-slate-100 border border-slate-200 rounded text-xs text-slate-500">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">NIP</label>
-                        <input type="text" id="form-nip" readonly class="w-full p-2 bg-slate-100 border border-slate-200 rounded text-xs text-slate-500">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Jabatan</label>
-                        <input type="text" id="form-jabatan" readonly class="w-full p-2 bg-slate-100 border border-slate-200 rounded text-xs text-slate-500">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Nama Pejabat Penilai</label>
-                        <input type="text" id="form-penilai" required class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Atasan Pejabat Penilai</label>
-                        <input type="text" id="form-atasan" required class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-3">
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Tahun SKP</label>
-                        <input type="number" id="form-tahun" required min="2000" max="2100" class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Capaian Kinerja Org.</label>
-                        <input type="text" id="form-capaian" required placeholder="Contoh: BAIK" class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Predikat Kinerja Pegawai</label>
-                        <input type="text" id="form-predikat" required placeholder="Contoh: SANGAT BAIK" class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Catatan Rekomendasi</label>
-                    <textarea id="form-rekomendasi" rows="2" class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500"></textarea>
-                </div>
-
-                <div>
-                    <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Lampiran SKP File (.pdf)</label>
-                    <input type="file" id="form-lampiran" class="w-full p-1.5 border border-slate-200 rounded text-xs bg-slate-50 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                    <p id="file-helper" class="text-[10px] text-slate-400 mt-1 hidden">Kosongkan jika tidak mengubah berkas lampiran.</p>
-                </div>
-
-                <div class="pt-3 border-t border-slate-100 flex justify-end gap-2 flex-shrink-0">
-                    <button type="button" onclick="tutupModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded shadow transition">Simpan SKP</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Script Links Bersarang -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../../supabase-config.js"></script>
-    <script src="../js/skp.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            if(window.initSkpModule) window.initSkpModule();
-        });
-    </script>
-</body>
-</html>
+</div>
