@@ -5,7 +5,7 @@
 
 // State Management Global Modul
 let spkDataGlobal = [];
-let listPegawaiGlobal = []; // Menyimpan master data nama & NIK untuk autofill
+let listPegawaiGlobal = []; // Tempat penampungan data nama & NIK hasil sync database
 let spkPageSekarang = 1;
 const spkItemPerHalaman = 25;
 let spkTotalItem = 0;
@@ -15,49 +15,58 @@ let spkFilterBidang = "";
 function initSPKRKKModule() {
     spkPageSekarang = 1;
     ambilDataSPKRKK();
-    ambilListPegawaiUntukAutofill(); // Memuat database nama & NIK saat halaman dibuka
+    ambilListPegawaiUntukAutofill(); // Memuat data referensi NIK & Nama sejak modul dibuka
 }
 
-// BARU: Fungsi mengambil data master pegawai untuk dijadikan opsi pencarian autofill
+// PERBAIKAN UTAMA: Penarikan data pintar dengan proteksi nama tabel (db_pegawai / pegawai)
 async function ambilListPegawaiUntukAutofill() {
     const datalist = document.getElementById("list-pegawai");
     if (!datalist) return;
 
     try {
-        // Mengambil kolom nik dan nama dari tabel 'pegawai'
-        // CATATAN: Jika nama tabel pegawaimu di Supabase berbeda (misal 'db_pegawai'), ubah text di bawah ini
-        const { data, error } = await supabase
-            .from("pegawai") 
+        // Strategi 1: Coba ambil dari tabel utama 'db_pegawai'
+        let { data, error } = await supabase
+            .from("db_pegawai") 
             .select("nik, nama")
             .order("nama", { ascending: true });
 
-        if (error) throw error;
+        // Strategi 2: Jika gagal atau tabel 'db_pegawai' tidak ada, beralih otomatis ke tabel 'pegawai'
+        if (error) {
+            console.warn("Mencoba beralih ke tabel alternatif 'pegawai'...");
+            const fallback = await supabase
+                .from("pegawai")
+                .select("nik, nama")
+                .order("nama", { ascending: true });
+            
+            if (fallback.error) throw fallback.error;
+            data = fallback.data;
+        }
 
         listPegawaiGlobal = data || [];
 
-        // Masukkan data ke dalam element <datalist> di HTML
+        // Isikan ke komponen datalist agar memicu dropdown rekomendasi HTML5
         datalist.innerHTML = listPegawaiGlobal.map(p => {
-            return `<option value="${p.nama}">${p.nik}</option>`;
+            return `<option value="${p.nama}">NIK: ${p.nik}</option>`;
         }).join('');
 
     } catch (err) {
-        console.error("Gagal memuat list pegawai untuk autofill:", err.message);
+        console.error("Sistem gagal memuat list referensi pegawai untuk autofill:", err.message);
     }
 }
 
-// BARU: Fungsi mendeteksi input mengetik nama dan otomatis mengisi kolom NIK
+// PERBAIKAN UTAMA: Pencocokan teks yang instan dan tidak sensitif huruf besar/kecil (Case-Insensitive)
 function autofillNIKByNama() {
     const inputNama = document.getElementById("spk-nama");
     const inputNik = document.getElementById("spk-nik");
     if (!inputNama || !inputNik) return;
 
-    const namaDiketik = inputNama.value.trim();
+    const namaDiketik = inputNama.value.trim().toLowerCase();
 
-    // Cari apakah nama yang diketik cocok dengan data di database pegawai
-    const pegawaiCocok = listPegawaiGlobal.find(p => p.nama.toLowerCase() === namaDiketik.toLowerCase());
+    // Jalankan pencarian entitas yang cocok di dalam data lokal global array
+    const pegawaiCocok = listPegawaiGlobal.find(p => (p.nama || "").toLowerCase() === namaDiketik);
 
     if (pegawaiCocok) {
-        inputNik.value = pegawaiCocok.nik; // Set NIK otomatis jika nama ditemukan
+        inputNik.value = pegawaiCocok.nik; // NIK langsung terisi seketika saat nama valid terpilih
     }
 }
 
