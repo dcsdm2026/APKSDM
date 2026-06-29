@@ -1,5 +1,5 @@
 /**
- * HRIS RSUD Drs. H. AMRI TAMBUNAN - Module SKP
+ * HRIS RSUD Drs. H. AMRI TAMBUNAN - Module SKP (Updated Schema)
  * Filename: skp.js
  */
 (function () {
@@ -23,7 +23,7 @@
             let query = supabase.from("skp").select("*", { count: "exact" });
 
             if (searchQuery) {
-                query = query.or(`nama.ilike.%${searchQuery}%,nik.ilike.%${searchQuery}%`);
+                query = query.or(`nama.ilike.%${searchQuery}%,nik.ilike.%${searchQuery}%,jabatan.ilike.%${searchQuery}%`);
             }
             if (currentFilterTahun) {
                 query = query.eq("tahun_skp", currentFilterTahun);
@@ -40,16 +40,17 @@
             document.getElementById("info-halaman").innerText = `Halaman: ${currentPage} dari ${Math.ceil(count / limitPerPage) || 1}`;
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400 text-xs">Belum ada rekam dokumen evaluasi SKP yang terdaftar.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-3 text-center text-slate-400 text-xs">Belum ada rekam dokumen evaluasi SKP yang terdaftar.</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = data.map(d => {
                 const labelNama = (d.nama || "").toUpperCase();
                 const labelNik = d.nik || "-";
+                const labelJabatan = d.jabatan || "-";
+                const penilai = d.pejabat_penilai || "-";
+                const atasanPenilai = d.atasan_pejabat_penilai || "-";
                 const labelTahun = d.tahun_skp || "-";
-                const predikat = d.predikat_kinerja_pegawai || "-";
-                const capaianOrg = d.capaian_kinerja_organisasi || "-";
                 const fileUrl = d.lampiran_skp || "";
 
                 return `
@@ -58,9 +59,12 @@
                             <div class="text-xs font-semibold text-blue-600">${labelNama}</div>
                             <div class="text-[10px] text-slate-500">NIK: ${labelNik}</div>
                         </td>
-                        <td class="p-3 text-xs font-semibold text-slate-700">${labelTahun}</td>
-                        <td class="p-3 text-xs text-slate-600">${capaianOrg}</td>
-                        <td class="p-3 text-xs font-medium text-blue-600">${predikat}</td>
+                        <td class="p-3 text-xs text-slate-700 font-medium">${labelJabatan}</td>
+                        <td class="p-3 text-xs text-slate-600">
+                            <div class="font-medium">${penilai}</div>
+                            <div class="text-[10px] text-slate-400">Atasan: ${atasanPenilai}</div>
+                        </td>
+                        <td class="p-3 text-xs font-bold text-slate-700 text-center">${labelTahun}</td>
                         <td class="p-3 text-center">
                             ${fileUrl ? `<a href="${fileUrl}" target="_blank" class="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"><i class="fa-solid fa-file-pdf"></i> Lihat</a>` : `<span class="text-[10px] text-slate-400">-</span>`}
                         </td>
@@ -100,7 +104,7 @@
         try {
             const { data, error } = await supabase
                 .from("pegawai")
-                .select("nik, nama")
+                .select("nik, nama, jabatan")
                 .ilike("nama", `%${val}%`)
                 .limit(5);
 
@@ -111,9 +115,9 @@
             }
 
             box.innerHTML = data.map(p => `
-                <div onclick="skpModule.pilihPegawai('${p.nik}', '${p.nama}')" class="p-2 text-xs hover:bg-slate-100 cursor-pointer transition flex flex-col">
+                <div onclick="skpModule.pilihPegawai('${p.nik}', '${p.nama}', '${p.jabatan || ''}')" class="p-2 text-xs hover:bg-slate-100 cursor-pointer transition flex flex-col">
                     <span class="font-semibold text-slate-800">${p.nama.toUpperCase()}</span>
-                    <span class="text-[10px] text-slate-500">NIK: ${p.nik}</span>
+                    <span class="text-[10px] text-slate-500">NIK: ${p.nik} | Jabatan: ${p.jabatan || '-'}</span>
                 </div>
             `).join('');
             box.classList.remove("hidden");
@@ -122,9 +126,10 @@
         }
     }
 
-    function pilihPegawai(nik, nama) {
+    function pilihPegawai(nik, nama, jabatan) {
         document.getElementById("form-nik").value = nik || "";
         document.getElementById("form-nama").value = nama || "";
+        document.getElementById("form-jabatan").value = jabatan || "";
         document.getElementById("autocomplete-input").value = nama || "";
         document.getElementById("autocomplete-results").classList.add("hidden");
     }
@@ -135,9 +140,10 @@
         const id = document.getElementById("form-id").value;
         const nik = document.getElementById("form-nik").value;
         const nama = document.getElementById("form-nama").value;
+        const jabatan = document.getElementById("form-jabatan").value;
+        const pejabat_penilai = document.getElementById("form-penilai").value.trim();
+        const atasan_pejabat_penilai = document.getElementById("form-atasan").value.trim();
         const tahun_skp = parseInt(document.getElementById("form-tahun").value);
-        const capaian_kinerja_organisasi = document.getElementById("form-capaian").value;
-        const predikat_kinerja_pegawai = document.getElementById("form-predikat").value;
         const inputFile = document.getElementById("form-file");
 
         if (!nik || !nama) {
@@ -161,7 +167,7 @@
                 fileUrl = supabase.storage.from("skp").getPublicUrl(pathName).data.publicUrl;
             }
 
-            const payload = { nik, nama, tahun_skp, capaian_kinerja_organisasi, predikat_kinerja_pegawai };
+            const payload = { nik, nama, jabatan, pejabat_penilai, atasan_pejabat_penilai, tahun_skp };
             if (fileUrl) payload.lampiran_skp = fileUrl;
 
             if (id) {
@@ -193,10 +199,11 @@
             document.getElementById("form-id").value = data.id;
             document.getElementById("form-nik").value = data.nik || "";
             document.getElementById("form-nama").value = data.nama || "";
+            document.getElementById("form-jabatan").value = data.jabatan || "";
             document.getElementById("autocomplete-input").value = data.nama || "";
+            document.getElementById("form-penilai").value = data.pejabat_penilai || "";
+            document.getElementById("form-atasan").value = data.atasan_pejabat_penilai || "";
             document.getElementById("form-tahun").value = data.tahun_skp || "";
-            document.getElementById("form-capaian").value = data.capaian_kinerja_organisasi || "";
-            document.getElementById("form-predikat").value = data.predikat_kinerja_pegawai || "";
         } catch (err) {
             alert("Gagal mengambil detail data: " + err.message);
         }
