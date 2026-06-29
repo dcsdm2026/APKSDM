@@ -1,5 +1,5 @@
 /**
- * HRIS RSUD Drs. H. AMRI TAMBUNAN - Module SKP (Updated Schema)
+ * HRIS RSUD Drs. H. AMRI TAMBUNAN - Module SKP (Combined Ultimate Schema)
  * Filename: skp.js
  */
 (function () {
@@ -50,6 +50,8 @@
                 const labelJabatan = d.jabatan || "-";
                 const penilai = d.pejabat_penilai || "-";
                 const atasanPenilai = d.atasan_pejabat_penilai || "-";
+                const capaianOrg = d.capaian_kinerja_organisasi || "-";
+                const predikat = d.predikat_kinerja_pegawai || "-";
                 const labelTahun = d.tahun_skp || "-";
                 const fileUrl = d.lampiran_skp || "";
 
@@ -63,6 +65,10 @@
                         <td class="p-3 text-xs text-slate-600">
                             <div class="font-medium">${penilai}</div>
                             <div class="text-[10px] text-slate-400">Atasan: ${atasanPenilai}</div>
+                        </td>
+                        <td class="p-3 text-xs text-slate-600">
+                            <div class="font-medium text-blue-600">${predikat}</div>
+                            <div class="text-[10px] text-slate-500">Org: ${capaianOrg}</div>
                         </td>
                         <td class="p-3 text-xs font-bold text-slate-700 text-center">${labelTahun}</td>
                         <td class="p-3 text-center">
@@ -143,6 +149,8 @@
         const jabatan = document.getElementById("form-jabatan").value;
         const pejabat_penilai = document.getElementById("form-penilai").value.trim();
         const atasan_pejabat_penilai = document.getElementById("form-atasan").value.trim();
+        const capaian_kinerja_organisasi = document.getElementById("form-capaian").value;
+        const predikat_kinerja_pegawai = document.getElementById("form-predikat").value;
         const tahun_skp = parseInt(document.getElementById("form-tahun").value);
         const inputFile = document.getElementById("form-file");
 
@@ -167,7 +175,10 @@
                 fileUrl = supabase.storage.from("skp").getPublicUrl(pathName).data.publicUrl;
             }
 
-            const payload = { nik, nama, jabatan, pejabat_penilai, atasan_pejabat_penilai, tahun_skp };
+            const payload = { 
+                nik, nama, jabatan, pejabat_penilai, atasan_pejabat_penilai, 
+                capaian_kinerja_organisasi, predikat_kinerja_pegawai, tahun_skp 
+            };
             if (fileUrl) payload.lampiran_skp = fileUrl;
 
             if (id) {
@@ -203,6 +214,8 @@
             document.getElementById("autocomplete-input").value = data.nama || "";
             document.getElementById("form-penilai").value = data.pejabat_penilai || "";
             document.getElementById("form-atasan").value = data.atasan_pejabat_penilai || "";
+            document.getElementById("form-capaian").value = data.capaian_kinerja_organisasi || "";
+            document.getElementById("form-predikat").value = data.predikat_kinerja_pegawai || "";
             document.getElementById("form-tahun").value = data.tahun_skp || "";
         } catch (err) {
             alert("Gagal mengambil detail data: " + err.message);
