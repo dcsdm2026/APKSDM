@@ -1,122 +1,124 @@
-<div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 w-full mx-auto animate-fade-in">
-    <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-100 pb-4 mb-6">
+<div class="space-y-4">
+    <!-- Header Modul -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-            <h3 class="text-lg font-bold text-gray-800">Manajemen SPK & RKK Pegawai</h3>
-            <p class="text-xs text-gray-500">Surat Penugasan Klinis & Rincian Kewenangan Klinis Tenaga Kesehatan</p>
+            <h2 class="text-base font-bold text-gray-800 tracking-tight">Manajemen Data SPK & RKK Pegawai</h2>
+            <p class="text-xs text-gray-500">Kelola validitas Surat Penugasan Klinis tenaga kesehatan</p>
         </div>
-        <div class="mt-4 md:mt-0 flex space-x-2">
-            <button onclick="unduhExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-3 py-2 rounded-lg transition flex items-center space-x-1.5">
-                <i class="fa-solid fa-file-excel"></i> <span>Excel</span>
-            </button>
-            <button onclick="unduhPDF()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium px-3 py-2 rounded-lg transition flex items-center space-x-1.5">
-                <i class="fa-solid fa-file-pdf"></i> <span>PDF</span>
-            </button>
-        </div>
+        <button onclick="bukaModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i> Tambah Rekam SPKRKK
+        </button>
     </div>
 
-    <div class="bg-slate-50 p-4 rounded-xl border border-gray-200 mb-8">
-        <h4 id="form-title" class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3 flex items-center space-x-2">
-            <i class="fa-solid fa-square-plus text-blue-600 text-sm"></i> <span>Tambah Data SPK RKK Baru</span>
-        </h4>
-        <form id="form-spkrkk" onsubmit="simpanSPKRKK(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-            <input type="hidden" id="spk-id">
-            
-            <div>
-                <label class="block font-medium text-gray-700 mb-1">Nama Lengkap Pegawai</label>
-                <input type="text" id="nama" list="list-pegawai" oninput="autofillNIKByNama()" required placeholder="Ketik nama pegawai..." class="w-full border bg-white rounded-md p-2 focus:ring-1 focus:ring-blue-500 outline-none">
-                <datalist id="list-pegawai"></datalist>
-            </div>
-            <div>
-                <label class="block font-medium text-gray-700 mb-1">NIK Pegawai</label>
-                <input type="text" id="nik" required placeholder="Terisi otomatis..." class="w-full border bg-white rounded-md p-2 focus:ring-1 focus:ring-blue-500 outline-none">
-            </div>
-            <div>
-                <label class="block font-medium text-gray-700 mb-1">Bidang / Komite</label>
-                <select id="spk-bidang" required class="w-full border bg-white rounded-md p-2 focus:ring-1 focus:ring-blue-500 outline-none">
-                    <option value="">-- Pilih Bidang --</option>
-                    <option value="Medis">Medis (Dokter)</option>
-                    <option value="Keperawatan">Keperawatan (Perawat/Bidan)</option>
-                    <option value="Penunjang Medis">Penunjang Medis</option>
-                </select>
-            </div>
-            <div>
-                <label class="block font-medium text-gray-700 mb-1">Nomor SPK & RKK</label>
-                <input type="text" id="spk-nomor" required placeholder="Contoh: 440/012/SPK-RKK/2026" class="w-full border bg-white rounded-md p-2 focus:ring-1 focus:ring-blue-500 outline-none">
-            </div>
-            <div>
-                <label class="block font-medium text-gray-700 mb-1">Tanggal Terbit</label>
-                <input type="date" id="spk-terbit" required class="w-full border bg-white rounded-md p-2 focus:ring-1 focus:ring-blue-500 outline-none">
-            </div>
-            <div>
-                <label class="block font-medium text-gray-700 mb-1">Tanggal Berakhir</label>
-                <input type="date" id="spk-berakhir" required class="w-full border bg-white rounded-md p-2 focus:ring-1 focus:ring-blue-500 outline-none">
-            </div>
-            <div class="md:col-span-2">
-                <label class="block font-medium text-gray-700 mb-1">Upload File Dokumen (PDF/Gambar)</label>
-                <div class="flex space-x-2">
-                    <input type="file" id="spk-file" class="w-full border bg-white rounded-md p-1.5 text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                    <button type="submit" id="btn-submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 rounded-md font-semibold shadow transition whitespace-nowrap">Simpan Data</button>
-                    <button type="button" id="btn-batal" onclick="resetFormSPKRKK()" class="hidden bg-gray-400 hover:bg-gray-500 text-white px-4 rounded-md font-medium transition">Batal</button>
-                </div>
-            </div>
-        </form>
-    </div>
-
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-        <div class="flex flex-wrap items-center gap-3">
-            <div class="w-48">
-                <select id="filter-bidang" onchange="filterDataSPKRKK()" class="w-full border bg-white rounded-lg p-2 text-xs font-medium text-gray-600 shadow-sm outline-none">
-                    <option value="">Semua Bidang</option>
-                    <option value="Medis">Medis</option>
-                    <option value="Keperawatan">Keperawatan</option>
-                    <option value="Penunjang Medis">Penunjang Medis</option>
-                </select>
-            </div>
-        </div>
-        <div class="w-full md:w-72">
+    <!-- Panel Filter & Cari -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-wrap gap-3 items-center">
+        <div class="flex-1 min-w-[250px]">
             <div class="relative">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                     <i class="fa-solid fa-magnifying-glass text-xs"></i>
                 </span>
-                <input type="text" id="cari-spkrkk" onkeyup="cariDataSPKRKK()" placeholder="Cari Nama, NIK atau No. SPK..." class="w-full border bg-white rounded-lg pl-9 pr-3 py-2 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                <input type="text" id="cari-spkrkk" oninput="cariData()" placeholder="Cari Nama atau NIK..." class="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-blue-500 transition">
             </div>
         </div>
+        <div class="w-48">
+            <select id="filter-bidang" onchange="cariData()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-blue-500 transition">
+                <option value="">Semua Bidang</option>
+                <option value="Medis">Medis</option>
+                <option value="Keperawatan">Keperawatan</option>
+                <option value="Penunjang">Penunjang</option>
+            </select>
+        </div>
     </div>
 
-    <div class="overflow-x-auto overflow-y-auto max-h-[500px] border border-gray-200 rounded-xl relative scrollbar-thin shadow-inner bg-white">
-        <table class="w-full text-left text-xs text-gray-600 border-collapse">
-            <thead class="bg-slate-100 border-b border-gray-200 font-bold uppercase sticky top-0 z-10 shadow-sm text-slate-700">
-                <tr>
-                    <th class="p-3 text-center w-12">No</th>
-                    <th class="p-3">NIK</th>
-                    <th class="p-3">Nama Pegawai</th>
-                    <th class="p-3">Bidang</th>
-                    <th class="p-3">Nomor SPK & RKK</th>
-                    <th class="p-3 text-center">Tgl Terbit</th>
-                    <th class="p-3 text-center">Tgl Berakhir</th>
-                    <th class="p-3 text-center w-24">Dokumen</th>
-                    <th class="p-3 text-center w-24">Aksi</th>
-                </tr>
-            </thead>
-            <tbody id="tabel-spkrkk-body" class="divide-y divide-gray-100">
-                </tbody>
-        </table>
+    <!-- Tabel Data -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 text-xs font-semibold uppercase tracking-wider">
+                        <th class="p-3">Pegawai</th>
+                        <th class="p-3">Bidang</th>
+                        <th class="p-3">No. SPK</th>
+                        <th class="p-3">Masa Berlaku</th>
+                        <th class="p-3 text-center">Dokumen</th>
+                        <th class="p-3 text-center w-24">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tabel-spkrkk-body" class="divide-y divide-gray-100"></tbody>
+            </table>
+        </div>
+        <!-- Navigasi Halaman -->
+        <div class="p-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center text-xs font-medium text-gray-600">
+            <button id="btn-prev" onclick="halamanSebelumnya()" class="px-3 py-1 bg-white border border-gray-200 rounded-md hover:bg-gray-100 disabled:opacity-50 transition">Back</button>
+            <div id="info-halaman">Halaman: 1</div>
+            <button id="btn-next" onclick="halamanBerikutnya()" class="px-3 py-1 bg-white border border-gray-200 rounded-md hover:bg-gray-100 disabled:opacity-50 transition">Next</button>
+        </div>
     </div>
+</div>
 
-    <div class="flex items-center justify-between mt-5 border-t border-gray-100 pt-4">
-        <div class="text-xs text-gray-500 font-medium" id="info-paginasi">
-            Menampilkan 0 sampai 0 dari 0 data
+<!-- Modal Dialog Box (Target Overlay Terisolasi) -->
+<div id="modal-spkrkk" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-md overflow-hidden transform transition-all">
+        <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+            <h3 id="modal-title" class="text-xs font-bold text-gray-800">Tambah Data SPKRKK</h3>
+            <button onclick="tutupModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div class="flex items-center space-x-1 font-semibold text-xs text-slate-700">
-            <button id="btn-page-back" onclick="gantiHalamanSPKRKK(-1)" class="px-3 py-1.5 rounded-md border bg-white hover:bg-slate-50 transition disabled:opacity-40 disabled:cursor-not-allowed">
-                <i class="fa-solid fa-angle-left mr-1"></i> Back
-            </button>
-            <span class="px-4 py-1.5 bg-slate-100 border rounded-md text-blue-600 font-bold" id="label-halaman">
-                Halaman 1
-            </span>
-            <button id="btn-page-next" onclick="gantiHalamanSPKRKK(1)" class="px-3 py-1.5 rounded-md border bg-white hover:bg-slate-50 transition disabled:opacity-40 disabled:cursor-not-allowed">
-                Next <i class="fa-solid fa-angle-right ml-1"></i>
-            </button>
-        </div>
+        <form id="form-spkrkk" onsubmit="simpanData(event)" class="p-4 space-y-3">
+            <input type="hidden" id="form-id">
+            
+            <div class="relative">
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Cari Pegawai (Ketik Nama)</label>
+                <input type="text" id="autocomplete-input" oninput="handleAutocomplete(this.value)" placeholder="Ketik nama untuk mencari..." class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500" autocomplete="off">
+                <div id="autocomplete-results" class="absolute z-10 w-full bg-white border border-gray-200 rounded shadow-lg max-h-40 overflow-y-auto hidden mt-1"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">NIK</label>
+                    <input type="text" id="form-nik" readonly class="w-full p-2 bg-gray-100 border border-gray-200 rounded text-xs text-gray-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Nama Lengkap</label>
+                    <input type="text" id="form-nama" readonly class="w-full p-2 bg-gray-100 border border-gray-200 rounded text-xs text-gray-500 outline-none">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Bidang Penugasan</label>
+                <select id="form-bidang" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
+                    <option value="">-- Pilih Bidang --</option>
+                    <option value="Medis">Medis</option>
+                    <option value="Keperawatan">Keperawatan</option>
+                    <option value="Penunjang">Penunjang</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Nomor SPK</label>
+                <input type="text" id="form-no-spk" required placeholder="800/123/SPK/2026" class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Tanggal Terbit</label>
+                    <input type="date" id="form-tanggal-terbit" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Tanggal Berakhir</label>
+                    <input type="date" id="form-tanggal-berakhir" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">File Dokumen (.pdf)</label>
+                <input type="file" id="form-file" class="w-full p-1 border border-gray-200 rounded text-xs bg-slate-50">
+                <p id="file-helper" class="text-[9px] text-gray-400 mt-1 hidden">*Kosongkan jika tidak berniat mengubah file lama.</p>
+            </div>
+
+            <div class="pt-3 border-t border-gray-100 flex justify-end gap-2">
+                <button type="button" onclick="tutupModal()" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-md transition">Batal</button>
+                <button type="submit" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md shadow-sm transition">Simpan</button>
+            </div>
+        </form>
     </div>
 </div>
