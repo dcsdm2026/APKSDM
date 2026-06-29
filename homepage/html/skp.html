@@ -22,13 +22,11 @@
         </div>
         <div class="w-48">
             <select id="filter-tahun" onchange="skpModule.cariData()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-blue-500 transition">
+                <option value="">Semua Tahun</option>
                 <option value="2026">2026</option>
-                    <option value="2025">2025</option>
-                    <option value="2024">2024</option>
-                    <option value="2023">2023</option>
-                    <option value="2023">2022</option>
-                    <option value="2023">2021</option>
-                    <option value="2023">2020</option>
+                <option value="2025">2025</option>
+                <option value="2024">2024</option>
+                <option value="2023">2023</option>
             </select>
         </div>
     </div>
@@ -42,6 +40,7 @@
                         <th class="p-3">Pegawai</th>
                         <th class="p-3">Jabatan</th>
                         <th class="p-3">Struktur Penilai</th>
+                        <th class="p-3">Hasil Evaluasi</th>
                         <th class="p-3 text-center">Tahun</th>
                         <th class="p-3 text-center">Dokumen</th>
                         <th class="p-3 text-center w-24">Aksi</th>
@@ -102,6 +101,29 @@
                 </div>
             </div>
 
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Kinerja Organisasi</label>
+                    <select id="form-capaian" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
+                        <option value="">-- Pilih --</option>
+                        <option value="Istimewa">Istimewa</option>
+                        <option value="Baik">Baik</option>
+                        <option value="Butuh Perbaikan">Butuh Perbaikan</option>
+                        <option value="Kurang">Kurang</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Predikat Kinerja</label>
+                    <select id="form-predikat" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
+                        <option value="">-- Pilih --</option>
+                        <option value="Sangat Baik">Sangat Baik</option>
+                        <option value="Baik">Baik</option>
+                        <option value="Butuh Perbaikan">Butuh Perbaikan</option>
+                        <option value="Kurang">Kurang</option>
+                    </select>
+                </div>
+            </div>
+
             <div>
                 <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Tahun SKP</label>
                 <select id="form-tahun" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
@@ -110,9 +132,6 @@
                     <option value="2025">2025</option>
                     <option value="2024">2024</option>
                     <option value="2023">2023</option>
-                    <option value="2023">2022</option>
-                    <option value="2023">2021</option>
-                    <option value="2023">2020</option>
                 </select>
             </div>
 
