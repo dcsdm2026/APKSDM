@@ -9,10 +9,10 @@ function initPengaturanModule() {
     ambilDataMaster();
 
     // 2. Tempelkan event listener ke form submit secara otomatis (jika ada)
-    const formPengaturan = document.getElementById("form-pengaturan") || document.getElementById("formPengaturan");
-    if (formPengaturan) {
-        formPengaturan.addEventListener("submit", simpanMasterData);
-    }
+    // const formPengaturan = document.getElementById("form-pengaturan") || document.getElementById("formPengaturan");
+    // if (formPengaturan) {
+     //   formPengaturan.addEventListener("submit", simpanMasterData);
+   // }
 }
 
 async function ambilDataMaster() {
