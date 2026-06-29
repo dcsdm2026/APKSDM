@@ -5,6 +5,7 @@
 
 // State Management Global Modul
 let spkDataGlobal = [];
+let listPegawaiGlobal = []; // Menyimpan master data nama & NIK untuk autofill
 let spkPageSekarang = 1;
 const spkItemPerHalaman = 25;
 let spkTotalItem = 0;
@@ -14,6 +15,50 @@ let spkFilterBidang = "";
 function initSPKRKKModule() {
     spkPageSekarang = 1;
     ambilDataSPKRKK();
+    ambilListPegawaiUntukAutofill(); // Memuat database nama & NIK saat halaman dibuka
+}
+
+// BARU: Fungsi mengambil data master pegawai untuk dijadikan opsi pencarian autofill
+async function ambilListPegawaiUntukAutofill() {
+    const datalist = document.getElementById("list-pegawai");
+    if (!datalist) return;
+
+    try {
+        // Mengambil kolom nik dan nama dari tabel 'pegawai'
+        // CATATAN: Jika nama tabel pegawaimu di Supabase berbeda (misal 'db_pegawai'), ubah text di bawah ini
+        const { data, error } = await supabase
+            .from("pegawai") 
+            .select("nik, nama")
+            .order("nama", { ascending: true });
+
+        if (error) throw error;
+
+        listPegawaiGlobal = data || [];
+
+        // Masukkan data ke dalam element <datalist> di HTML
+        datalist.innerHTML = listPegawaiGlobal.map(p => {
+            return `<option value="${p.nama}">${p.nik}</option>`;
+        }).join('');
+
+    } catch (err) {
+        console.error("Gagal memuat list pegawai untuk autofill:", err.message);
+    }
+}
+
+// BARU: Fungsi mendeteksi input mengetik nama dan otomatis mengisi kolom NIK
+function autofillNIKByNama() {
+    const inputNama = document.getElementById("spk-nama");
+    const inputNik = document.getElementById("spk-nik");
+    if (!inputNama || !inputNik) return;
+
+    const namaDiketik = inputNama.value.trim();
+
+    // Cari apakah nama yang diketik cocok dengan data di database pegawai
+    const pegawaiCocok = listPegawaiGlobal.find(p => p.nama.toLowerCase() === namaDiketik.toLowerCase());
+
+    if (pegawaiCocok) {
+        inputNik.value = pegawaiCocok.nik; // Set NIK otomatis jika nama ditemukan
+    }
 }
 
 async function ambilDataSPKRKK() {
@@ -21,22 +66,18 @@ async function ambilDataSPKRKK() {
     if (!tbody) return;
 
     try {
-        // Bangun query dasar ke database Supabase
         let query = supabase
             .from("spkrkk")
             .select("*", { count: "exact" });
 
-        // Filter berdasar Bidang Komite
         if (spkFilterBidang !== "") {
             query = query.eq("bidang", spkFilterBidang);
         }
 
-        // Filter berdasar Kotak Pencarian (NIK, Nama, atau No SPK)
         if (spkKataKunci !== "") {
             query = query.or(`nama.ilike.%${spkKataKunci}%,nik.ilike.%${spkKataKunci}%,nomor_spk_rkk.ilike.%${spkKataKunci}%`);
         }
 
-        // Jalankan Paginasi (Batas Indeks Jangkauan data)
         const indeksMulai = (spkPageSekarang - 1) * spkItemPerHalaman;
         const indeksSelesai = indeksMulai + spkItemPerHalaman - 1;
 
@@ -70,11 +111,9 @@ function renderTabelSPKRKK(indeksMulai) {
     tbody.innerHTML = spkDataGlobal.map((item, index) => {
         const noUrut = indeksMulai + index + 1;
         
-        // Format Tanggal Indonesia yang rapi
         const tglTerbit = item.tanggal_terbit ? item.tanggal_terbit.split('-').reverse().join('/') : '-';
         const tglBerakhir = item.tanggal_berakhir ? item.tanggal_berakhir.split('-').reverse().join('/') : '-';
 
-        // Deteksi berkas dokumen
         let komponenFile = `<span class="text-gray-400 italic text-[11px]">Tidak ada file</span>`;
         if (item.file_path) {
             const { data } = supabase.storage.from("spkrkk").getPublicUrl(item.file_path);
@@ -162,13 +201,11 @@ async function simpanSPKRKK(e) {
     try {
         let file_path = null;
 
-        // Jika dalam mode EDIT, pertahankan file lama kecuali ada upload berkas baru
         if (idData) {
             const dataLama = spkDataGlobal.find(d => String(d.id) === String(idData));
             if (dataLama) file_path = dataLama.file_path;
         }
 
-        // Proses unggah berkas jika user memilih file baru
         if (inputFile && inputFile.files.length > 0) {
             const fileObj = inputFile.files[0];
             const ekstensi = fileObj.name.split('.').pop();
@@ -185,7 +222,6 @@ async function simpanSPKRKK(e) {
         const payload = { nik, nama, bidang, nomor_spk_rkk, tanggal_terbit, tanggal_berakhir, file_path };
 
         if (idData) {
-            // Aksi Eksekusi UPDATE data
             const { error } = await supabase
                 .from("spkrkk")
                 .update(payload)
@@ -194,7 +230,6 @@ async function simpanSPKRKK(e) {
             if (error) throw error;
             alert("Data SPK & RKK berhasil diperbarui!");
         } else {
-            // Aksi Eksekusi INSERT data baru
             const { error } = await supabase
                 .from("spkrkk")
                 .insert([payload]);
@@ -222,9 +257,8 @@ function siapEditSPKRKK(id) {
     document.getElementById("spk-nomor").value = item.nomor_spk_rkk || "";
     document.getElementById("spk-terbit").value = item.tanggal_terbit || "";
     document.getElementById("spk-berakhir").value = item.tanggal_berakhir || "";
-    document.getElementById("spk-file").value = ""; // Reset input file pencatat berkas
+    document.getElementById("spk-file").value = ""; 
 
-    // Ubah judul form UI menjadi mode edit
     document.getElementById("form-title").innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-500 text-sm"></i> <span class="text-amber-700">Ubah Data SPK RKK</span>`;
     document.getElementById("btn-submit").innerText = "Perbarui Data";
     document.getElementById("btn-batal").classList.remove("hidden");
@@ -243,7 +277,6 @@ async function hapusSPKRKK(id, pathFile) {
     if (!confirm("Apakah Anda yakin akan menghapus permanen arsip SPK RKK ini?")) return;
 
     try {
-        // 1. Hapus baris di tabel database
         const { error: dbError } = await supabase
             .from("spkrkk")
             .delete()
@@ -251,7 +284,6 @@ async function hapusSPKRKK(id, pathFile) {
 
         if (dbError) throw dbError;
 
-        // 2. Hapus berkas fisiknya di storage bucket jika ada
         if (pathFile && pathFile !== "null" && pathFile !== "undefined") {
             await supabase.storage.from("spkrkk").remove([pathFile]);
         }
@@ -264,12 +296,7 @@ async function hapusSPKRKK(id, pathFile) {
     }
 }
 
-// ==========================================
-// FITUR EKSPOR DATA (EXCEL & PDF)
-// ==========================================
-
 async function ambilSemuaDataFilter() {
-    // Menarik seluruh data tanpa batasan halaman (range) untuk laporan ekspor menyeluruh
     try {
         let query = supabase.from("spkrkk").select("*");
         if (spkFilterBidang !== "") query = query.eq("bidang", spkFilterBidang);
@@ -305,7 +332,6 @@ async function unduhExcel() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Data SPK RKK");
     
-    // Auto-fit kolom biar rapi
     const max_widths = [{wch:6}, {wch:18}, {wch:30}, {wch:18}, {wch:30}, {wch:15}, {wch:15}];
     worksheet['!cols'] = max_widths;
 
@@ -320,7 +346,7 @@ async function unduhPDF() {
     }
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4'); // Mode Landscape
+    const doc = new jsPDF('l', 'mm', 'a4'); 
 
     doc.setFont("Helvetica", "bold");
     doc.text("RSUD Drs. H. AMRI TAMBUNAN", 14, 15);
@@ -345,7 +371,7 @@ async function unduhPDF() {
         head: [['No', 'NIK', 'Nama Pegawai', 'Bidang', 'Nomor SPK & RKK', 'Tgl Terbit', 'Tgl Berakhir']],
         body: dataTabelBody,
         theme: 'striped',
-        headStyles: { fillColor: [15, 23, 42], textLocate: 'center' }, // warna slate-900 sesuai sidebar
+        headStyles: { fillColor: [15, 23, 42], textLocate: 'center' }, 
         styles: { fontSize: 9, cellPadding: 3 }
     });
 
@@ -364,3 +390,5 @@ window.cariDataSPKRKK = cariDataSPKRKK;
 window.gantiHalamanSPKRKK = gantiHalamanSPKRKK;
 window.unduhExcel = unduhExcel;
 window.unduhPDF = unduhPDF;
+window.autofillNIKByNama = autofillNIKByNama;
+window.ambilListPegawaiUntukAutofill = ambilListPegawaiUntukAutofill;
