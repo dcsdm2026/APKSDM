@@ -26,7 +26,7 @@ async function ambilListPegawaiUntukAutofill() {
     try {
         // Strategi 1: Coba ambil dari tabel utama 'db_pegawai'
         let { data, error } = await supabase
-            .from("db_pegawai") 
+            .from("pegawai") 
             .select("nik, nama")
             .order("nama", { ascending: true });
 
