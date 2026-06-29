@@ -17,14 +17,25 @@ function initPengaturanModule() {
 
 async function ambilDataMaster() {
     const tbody = document.getElementById("tabel-pengaturan-body");
+    const inputCari = document.getElementById("cari-master");
     if (!tbody) return;
     
     try {
-        // Ambil data dari tabel 'pengaturan' diurutkan berdasarkan kolom 'master_data'
-        const { data, error } = await supabase
+        let query = supabase
             .from("pengaturan")
             .select("*")
             .order("master_data", { ascending: true });
+
+        // Jika user mengetik sesuatu di kotak pencarian, filter datanya
+        if (inputCari && inputCari.value.trim() !== "") {
+            const kataKunci = inputCari.value.trim();
+            query = query.ilike("keterangan", `%${kataKunci}%`);
+        } else {
+            // Jika pencarian kosong, batasi data agar tidak terlalu panjang
+            query = query.limit(50);
+        }
+
+        const { data, error } = await query;
 
         if (error) {
             console.error("Supabase Error:", error.message);
@@ -33,7 +44,7 @@ async function ambilDataMaster() {
 
         // Jika data dari database kosong
         if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="3" class="p-3 text-center text-slate-400 text-xs">Belum ada pilihan master data.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="3" class="p-3 text-center text-slate-400 text-xs">Pencarian tidak ditemukan atau data kosong.</td></tr>`;
             return;
         }
 
