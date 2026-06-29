@@ -62,11 +62,23 @@ function autofillNIKByNama() {
 
     const namaDiketik = inputNama.value.trim().toLowerCase();
 
-    // Jalankan pencarian entitas yang cocok di dalam data lokal global array
-    const pegawaiCocok = listPegawaiGlobal.find(p => (p.nama || "").toLowerCase() === namaDiketik);
+    // Jika input nama kosong, bersihkan juga input NIK
+    if (namaDiketik === "") {
+        inputNik.value = "";
+        return;
+    }
+
+    // PERBAIKAN: Berikan trim() juga pada p.nama untuk mengantisipasi spasi hantu dari database
+    const pegawaiCocok = listPegawaiGlobal.find(p => {
+        const namaDatabase = (p.nama || "").trim().toLowerCase();
+        return namaDatabase === namaDiketik;
+    });
 
     if (pegawaiCocok) {
-        inputNik.value = pegawaiCocok.nik; // NIK langsung terisi seketika saat nama valid terpilih
+        inputNik.value = pegawaiCocok.nik; // NIK langsung terisi saat nama cocok sepenuhnya
+    } else {
+        // Opsional: Kosongkan NIK jika nama diubah/tidak sesuai daftar agar tidak salah input
+        inputNik.value = ""; 
     }
 }
 
