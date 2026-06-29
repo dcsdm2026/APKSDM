@@ -1,161 +1,120 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sertifikat - HRIS RSUD Drs. H. AMRI TAMBUNAN</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-slate-100 text-slate-800 font-sans antialiased">
-
-    <div class="container mx-auto p-4 max-w-7xl">
-        <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex justify-between items-center">
-            <div>
-                <h1 class="text-lg font-bold text-slate-900 tracking-tight">Portofolio Pengembangan Kompetensi (Sertifikat)</h1>
-                <p class="text-xs text-slate-500">RSUD Drs. H. AMRI TAMBUNAN</p>
-            </div>
-            <button onclick="bukaModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded shadow transition flex items-center gap-2">
-                <i class="fa-solid fa-plus"></i> Unggah Sertifikat
-            </button>
+<div class="space-y-4">
+    <!-- Header Modul -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h2 class="text-base font-bold text-gray-800 tracking-tight">Manajemen Sertifikat Pegawai</h2>
+            <p class="text-xs text-gray-500">Kelola berkas sertifikat diklat, kursus, workshop, dan seminar kompetensi</p>
         </div>
+        <button onclick="sertifikatModule.bukaModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i> Tambah Rekam Sertifikat
+        </button>
+    </div>
 
-        <div class="mb-4 bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-wrap gap-3 items-center">
-            <div class="flex-1 min-w-[250px]">
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                    </span>
-                    <input type="text" id="cari-sertifikat" oninput="cariData()" placeholder="Cari Nama, NIK, Judul Pelatihan..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500 transition">
+    <!-- Panel Filter & Cari -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-wrap gap-3 items-center">
+        <div class="flex-1 min-w-[250px]">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="cari-sertifikat" oninput="sertifikatModule.cariData()" placeholder="Cari Nama atau Judul..." class="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-blue-500 transition">
+            </div>
+        </div>
+        <div class="w-48">
+            <select id="filter-jenis" onchange="sertifikatModule.cariData()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-blue-500 transition">
+                <option value="">Semua Jenis</option>
+                <option value="Pelatihan">Pelatihan</option>
+                <option value="Workshop">Workshop</option>
+                <option value="Seminar">Seminar</option>
+                <option value="Bimtek">Bimtek</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Tabel Data -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 text-xs font-semibold uppercase tracking-wider">
+                        <th class="p-3">Pegawai</th>
+                        <th class="p-3">Jenis</th>
+                        <th class="p-3">Judul Kegiatan Pengembangan</th>
+                        <th class="p-3">No. Sertifikat</th>
+                        <th class="p-3 text-center">Dokumen</th>
+                        <th class="p-3 text-center w-24">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tabel-sertifikat-body" class="divide-y divide-gray-100"></tbody>
+            </table>
+        </div>
+        <!-- Navigasi Halaman -->
+        <div class="p-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center text-xs font-medium text-gray-600">
+            <button id="btn-prev" onclick="sertifikatModule.halamanSebelumnya()" class="px-3 py-1 bg-white border border-gray-200 rounded-md hover:bg-gray-100 disabled:opacity-50 transition">Back</button>
+            <div id="info-halaman">Halaman: 1</div>
+            <button id="btn-next" onclick="sertifikatModule.halamanBerikutnya()" class="px-3 py-1 bg-white border border-gray-200 rounded-md hover:bg-gray-100 disabled:opacity-50 transition">Next</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Dialog Box -->
+<div id="modal-sertifikat" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-md overflow-hidden transform transition-all">
+        <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+            <h3 id="modal-title" class="text-xs font-bold text-gray-800">Tambah Data Sertifikat</h3>
+            <button onclick="sertifikatModule.tutupModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form id="form-sertifikat" onsubmit="sertifikatModule.simpanData(event)" class="p-4 space-y-3">
+            <input type="hidden" id="form-id">
+            
+            <div class="relative">
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Cari Pegawai (Ketik Nama)</label>
+                <input type="text" id="autocomplete-input" oninput="sertifikatModule.handleAutocomplete(this.value)" placeholder="Ketik nama untuk mencari..." class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500" autocomplete="off">
+                <div id="autocomplete-results" class="absolute z-10 w-full bg-white border border-gray-200 rounded shadow-lg max-h-40 overflow-y-auto hidden mt-1"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">NIK</label>
+                    <input type="text" id="form-nik" readonly class="w-full p-2 bg-gray-100 border border-gray-200 rounded text-xs text-gray-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Nama Lengkap</label>
+                    <input type="text" id="form-nama" readonly class="w-full p-2 bg-gray-100 border border-gray-200 rounded text-xs text-gray-500 outline-none">
                 </div>
             </div>
-            <div class="w-48">
-                <select id="filter-jenis" onchange="cariData()" class="w-full p-2 bg-slate-50 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500 transition">
-                    <option value="">Semua Jenis</option>
+
+            <div>
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Jenis Sertifikat</label>
+                <select id="form-jenis" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
+                    <option value="">-- Pilih Jenis --</option>
                     <option value="Pelatihan">Pelatihan</option>
                     <option value="Workshop">Workshop</option>
                     <option value="Seminar">Seminar</option>
                     <option value="Bimtek">Bimtek</option>
                 </select>
             </div>
-        </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs font-semibold uppercase tracking-wider">
-                            <th class="p-3">Pegawai</th>
-                            <th class="p-3">Sertifikat & Kegiatan</th>
-                            <th class="p-3">Waktu Pelaksanaan</th>
-                            <th class="p-3">Bobot (JPL / SKP)</th>
-                            <th class="p-3 text-center">Berkas</th>
-                            <th class="p-3 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabel-sertifikat-body" class="divide-y divide-slate-100"></tbody>
-                </table>
+            <div>
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Judul Agenda / Kegiatan</label>
+                <input type="text" id="form-judul" required placeholder="Contoh: Pelatihan BTCLS Tenaga Kesehatan" class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
             </div>
-            <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs font-medium text-slate-600">
-                <button id="btn-prev" onclick="halamanSebelumnya()" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50 transition">Back</button>
-                <div id="info-halaman">Halaman: 1</div>
-                <button id="btn-next" onclick="halamanBerikutnya()" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50 transition">Next</button>
+
+            <div>
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Nomor Sertifikat</label>
+                <input type="text" id="form-no-sertifikat" required placeholder="No. 440/123/DIKLAT/2026" class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
             </div>
-        </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">File Dokumen Sertifikat (.pdf)</label>
+                <input type="file" id="form-file" class="w-full p-1 border border-gray-200 rounded text-xs bg-slate-50">
+                <p id="file-helper" class="text-[9px] text-gray-400 mt-1 hidden">*Kosongkan jika tidak berniat mengubah file lama.</p>
+            </div>
+
+            <div class="pt-3 border-t border-gray-100 flex justify-end gap-2">
+                <button type="button" onclick="sertifikatModule.tutupModal()" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-md transition">Batal</button>
+                <button type="submit" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md shadow-sm transition">Simpan</button>
+            </div>
+        </form>
     </div>
-
-    <!-- Modal Form -->
-    <div id="modal-sertifikat" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden transform transition-all">
-            <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                <h3 id="modal-title" class="text-sm font-bold text-slate-800">Tambah Sertifikat</h3>
-                <button onclick="tutupModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form id="form-sertifikat" onsubmit="simpanData(event)" class="p-4 space-y-3">
-                <input type="hidden" id="form-id">
-                
-                <div class="relative">
-                    <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Cari Nama Pegawai</label>
-                    <input type="text" id="autocomplete-input" oninput="handleAutocomplete(this.value)" placeholder="Ketik nama pegawai pemilik sertifikat..." class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500" autocomplete="off">
-                    <div id="autocomplete-results" class="absolute z-10 w-full bg-white border border-slate-200 rounded shadow-lg max-h-40 overflow-y-auto hidden mt-1"></div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">NIK</label>
-                        <input type="text" id="form-nik" readonly class="w-full p-2 bg-slate-100 border border-slate-200 rounded text-xs text-slate-500">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Nama</label>
-                        <input type="text" id="form-nama" readonly class="w-full p-2 bg-slate-100 border border-slate-200 rounded text-xs text-slate-500">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Nomor Sertifikat</label>
-                        <input type="text" id="form-no-sertifikat" required class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Jenis Agenda</label>
-                        <select id="form-jenis" required class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                            <option value="Pelatihan">Pelatihan</option>
-                            <option value="Workshop">Workshop</option>
-                            <option value="Seminar">Seminar</option>
-                            <option value="Bimtek">Bimtek</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Judul Agenda / Pelatihan</label>
-                    <input type="text" id="form-judul" required placeholder="Contoh: Pelatihan Komunikasi Efektif Keperawatan" class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Tanggal Mulai</label>
-                        <input type="date" id="form-mulai" required class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Tanggal Selesai</label>
-                        <input type="date" id="form-selesai" required class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Bobot JPL</label>
-                        <input type="number" id="form-jpl" required class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Nilai SKP Profesi</label>
-                        <input type="text" id="form-skp-nilai" placeholder="Contoh: 2 PPNI / 3 IDI" class="w-full p-2 border border-slate-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-[11px] font-semibold text-slate-600 uppercase mb-1">Berkas Digital Sertifikat (.pdf, .jpg)</label>
-                    <input type="file" id="form-file-sertifikat" class="w-full p-1.5 border border-slate-200 rounded text-xs bg-slate-50 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                    <p id="file-helper" class="text-[10px] text-slate-400 mt-1 hidden">Biarkan kosong jika tidak berencana menimpa berkas lama.</p>
-                </div>
-
-                <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
-                    <button type="button" onclick="tutupModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded transition">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded shadow transition">Simpan Dokumen</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Script Links Bersarang -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../../supabase-config.js"></script>
-    <script src="../js/sertifikat.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            if(window.initSertifikatModule) window.initSertifikatModule();
-        });
-    </script>
-</body>
-</html>
+</div>
