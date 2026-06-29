@@ -22,10 +22,13 @@
     </form>
 
     <div class="mt-8">
-        <h4 class="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wider">Daftar Parameter Terdaftar</h4>
-        <div class="overflow-x-auto border rounded-lg">
+        <div class="flex justify-between items-center mb-3">
+            <h4 class="text-sm font-semibold text-gray-600 uppercase tracking-wider">Daftar Parameter Terdaftar</h4>
+            <input type="text" id="cari-master" onkeyup="ambilDataMaster()" placeholder="Cari keterangan..." class="border rounded-md px-3 py-1.5 text-sm w-64 focus:outline-none focus:ring-1 focus:ring-blue-500">
+        </div>
+        <div class="overflow-x-auto overflow-y-auto max-h-[400px] border rounded-lg relative scrollbar-thin">
             <table class="w-full text-left text-sm text-gray-600">
-                <thead class="bg-slate-50 border-b text-xs font-semibold uppercase">
+                <thead class="bg-slate-50 border-b text-xs font-semibold uppercase sticky top-0 z-10 shadow-sm">
                     <tr>
                         <th class="p-3">Kategori Master</th>
                         <th class="p-3">Keterangan Parameter</th>
