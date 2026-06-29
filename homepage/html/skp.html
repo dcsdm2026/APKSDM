@@ -3,7 +3,7 @@
     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
             <h2 class="text-base font-bold text-gray-800 tracking-tight">Manajemen Data SKP Pegawai</h2>
-            <p class="text-xs text-gray-500">Kelola realisasi dan nilai Sasaran Kinerja Pegawai tahunan</p>
+            <p class="text-xs text-gray-500">Kelola dokumen realisasi Sasaran Kinerja Pegawai tahunan</p>
         </div>
         <button onclick="skpModule.bukaModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm transition flex items-center gap-2">
             <i class="fa-solid fa-plus"></i> Tambah Rekam SKP
@@ -17,7 +17,7 @@
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                     <i class="fa-solid fa-magnifying-glass text-xs"></i>
                 </span>
-                <input type="text" id="cari-skp" oninput="skpModule.cariData()" placeholder="Cari Nama atau NIK..." class="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-blue-500 transition">
+                <input type="text" id="cari-skp" oninput="skpModule.cariData()" placeholder="Cari Nama, NIK, atau Jabatan..." class="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-blue-500 transition">
             </div>
         </div>
         <div class="w-48">
@@ -27,8 +27,6 @@
                 <option value="2025">2025</option>
                 <option value="2024">2024</option>
                 <option value="2023">2023</option>
-                <option value="2022">2022</option>
-                <option value="2021">2021</option>
             </select>
         </div>
     </div>
@@ -40,9 +38,9 @@
                 <thead>
                     <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 text-xs font-semibold uppercase tracking-wider">
                         <th class="p-3">Pegawai</th>
-                        <th class="p-3">Tahun SKP</th>
-                        <th class="p-3">Kinerja Organisasi</th>
-                        <th class="p-3">Predikat Kerja</th>
+                        <th class="p-3">Jabatan</th>
+                        <th class="p-3">Struktur Penilai</th>
+                        <th class="p-3 text-center">Tahun</th>
                         <th class="p-3 text-center">Dokumen</th>
                         <th class="p-3 text-center w-24">Aksi</th>
                     </tr>
@@ -86,46 +84,35 @@
                 </div>
             </div>
 
+            <div>
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Jabatan Saat Evaluasi</label>
+                <input type="text" id="form-jabatan" placeholder="Contoh: Perawat Ahli Pertama" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
+            </div>
+
             <div class="grid grid-cols-2 gap-2">
                 <div>
-                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Tahun Evaluasi</label>
-                    <select id="form-tahun" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                        <option value="">-- Pilih --</option>
-                        <option value="2026">2026</option>
-                        <option value="2025">2025</option>
-                        <option value="2024">2024</option>
-                        <option value="2023">2023</option>
-                        <option value="2022">2022</option>
-                        <option value="2021">2021</option>
-                    </select>
+                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Nama Pejabat Penilai</label>
+                    <input type="text" id="form-penilai" placeholder="Nama Penilai & Gelar" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Kinerja Organisasi</label>
-                    <select id="form-capaian" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                    <option value="">-- Pilih Predikat --</option>
-                    <option value="Sangat Baik">Sangat Baik</option>
-                    <option value="Baik">Baik</option>
-                    <option value="Cukup/Butuh Perbaikan">Cukup / Butuh Perbaikan</option>
-                    <option value="Kurang">Kurang</option>
-                    <option value="Sangat Kurang">Sangat Kurang</option>
-                    </select>
+                    <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Atasan Pejabat Penilai</label>
+                    <input type="text" id="form-atasan" placeholder="Nama Atasan & Gelar" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
                 </div>
             </div>
 
             <div>
-                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Predikat Kinerja Pegawai</label>
-                <select id="form-predikat" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
-                    <option value="">-- Pilih Predikat --</option>
-                    <option value="Sangat Baik">Sangat Baik</option>
-                    <option value="Baik">Baik</option>
-                    <option value="Cukup/Butuh Perbaikan">Cukup / Butuh Perbaikan</option>
-                    <option value="Kurang">Kurang</option>
-                    <option value="Sangat Kurang">Sangat Kurang</option>
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Tahun SKP</label>
+                <select id="form-tahun" required class="w-full p-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500">
+                    <option value="">-- Pilih Tahun --</option>
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                    <option value="2023">2023</option>
                 </select>
             </div>
 
             <div>
-                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">File Dokumen SKP (.pdf)</label>
+                <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">File Lampiran SKP (.pdf)</label>
                 <input type="file" id="form-file" class="w-full p-1 border border-gray-200 rounded text-xs bg-slate-50">
                 <p id="file-helper" class="text-[9px] text-gray-400 mt-1 hidden">*Kosongkan jika tidak berniat mengubah file lama.</p>
             </div>
