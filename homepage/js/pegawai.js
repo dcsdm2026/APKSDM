@@ -258,9 +258,26 @@ async function uploadFileKeStorage(inputElementId, oldUrl) {
 }
 
 // System Save / Update CRUD Operations
+// System Save / Update CRUD Operations
 async function simpanDataPegawai(e) {
     e.preventDefault();
     
+    // 1. Ambil nilai kelompok pegawai dan NIP
+    const kelompokPegawai = document.getElementById("f-kelompok_pegawai").value;
+    let nilaiNip = document.getElementById("f-nip").value.trim();
+
+    // 2. Validasi Logika Aturan Bisnis Anda
+    if (kelompokPegawai === 'ASN') {
+        if (!nilaiNip) {
+            alert("Gagal menyimpan: Pegawai dengan kelompok ASN WAJIB mengisi NIP!");
+            return; // Hentikan proses simpan
+        }
+    } else {
+        // Jika BUKAN ASN, paksa NIP menjadi null (bukan string kosong "")
+        // PostgreSQL mengizinkan banyak data bernilai NULL pada kolom UNIQUE
+        nilaiNip = null;
+    }
+
     // Upload semua berkas secara paralel
     const url_foto = await uploadFileKeStorage('up-foto', document.getElementById("f-url_foto").value);
     const url_ktp = await uploadFileKeStorage('up-ktp', document.getElementById("f-url_ktp").value);
@@ -293,9 +310,12 @@ async function simpanDataPegawai(e) {
         asal_pendidikan: document.getElementById("f-asal_pendidikan").value,
         fakultas: document.getElementById("f-fakultas").value,
         jurusan: document.getElementById("f-jurusan").value,
-        nip: document.getElementById("f-nip").value,
+        
+        // 3. Masukkan variabel nilaiNip yang sudah divalidasi di sini
+        nip: nilaiNip, 
+        
         status_pegawai: document.getElementById("f-status_pegawai").value,
-        kelompok_pegawai: document.getElementById("f-kelompok_pegawai").value,
+        kelompok_pegawai: kelompokPegawai,
         golongan: document.getElementById("f-golongan").value,
         tmt_pangkat: document.getElementById("f-tmt_pangkat").value || null,
         kelompok_jabatan: document.getElementById("f-kelompok_jabatan").value,
@@ -314,7 +334,6 @@ async function simpanDataPegawai(e) {
         masa_kerja: hitungMasaKerjaOtomatis(document.getElementById("f-masuk_rs").value),
         url_foto, url_ktp, url_kk, url_ijazah, url_transkrip, url_pangkat, url_jabatan, url_nota, url_bpjs, url_ketenagakerjaan_taspen, url_npwp
     };
-
     const id = document.getElementById("f-id").value;
     let hasil;
 
